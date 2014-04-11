@@ -1,5 +1,7 @@
 #-*- coding: utf-8 -*-
 
+from math import ceil
+
 from django.core.paginator import EmptyPage, Page
 
 
@@ -57,6 +59,8 @@ class SeekPage(Page):
     def __init__(self, object_list, number, paginator, has_next):
         super(SeekPage, self).__init__(object_list, number, paginator)
         self._has_next = has_next
+        self._pages_left = None
+        self._objects_left = None
 
     def __repr__(self):
         return '<Page value %s>' % self.number or ""
@@ -81,3 +85,33 @@ class SeekPage(Page):
 
     def end_index(self):
         raise NotImplementedError
+
+    @property
+    def objects_left(self):
+        """
+        Returns the total number of objects left
+        """
+        if not self.has_next():
+            return 0
+
+        if self._objects_left is None:
+            last = self.object_list[-1]
+            value = getattr(last, self.paginator.lookup_field)
+            lookup = self.paginator.prepare_lookup(value, last.pk)
+            order = self.paginator.prepare_order()
+            self._objects_left = self.paginator.query_set.filter(**lookup).order_by(*order).count()
+
+        return self._objects_left
+
+    @property
+    def pages_left(self):
+        """
+        Returns the total number of pages left
+        """
+        if not self.objects_left:
+            return 0
+
+        if self._pages_left is None:
+            self._pages_left = int(ceil(self.objects_left / float(self.paginator.per_page)))
+
+        return self._pages_left

@@ -23,6 +23,12 @@ class PaginatorTest(TestCase):
 
         self.paginator = SeekPaginator(Article.objects.all(), per_page=10, lookup_field="date_unique")
 
+    def test_prepare_order(self):
+        raise Exception()
+
+    def test_prepare_lookup(self):
+        raise Exception()
+
     def test_paginator(self):
         articles = Article.objects.all().order_by("-date_unique")
 
@@ -75,6 +81,27 @@ class PaginatorTest(TestCase):
 
         page_2 = self.paginator.page(value=page_1[-1].id, pk=page_1[-1].id)
         self.assertListEqual(list(page_2), list(articles[10:20]))
+
+
+class PageTest(TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_has_next(self):
+        raise Exception()
+
+    def test_has_other_pages(self):
+        raise Exception()
+
+    def test_unimplemented(self):
+        raise Exception()
+
+    def test_objects_left(self):
+        raise Exception()
+
+    def test_pages_left(self):
+        raise Exception()
 
 
 class PaginatorViewTest(TestCase):
