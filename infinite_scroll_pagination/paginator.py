@@ -21,6 +21,14 @@ class SeekPaginator(object):
         else:
             return [lookup_field_desc, ]
 
+    def prepare_lookup(self, value, pk):
+        if self.lookup_field not in ("pk", "id"):
+            lookup = "%s__lte" % self.lookup_field
+            return {lookup: value, "pk__lt": pk}
+        else:
+            lookup = "%s__lt" % self.lookup_field
+            return {lookup: value, }
+
     def page(self, value=None, pk=None):
         if (value is None and pk is not None) or (value is not None and pk is None):
             raise ValueError("Both 'value' and 'pk' arguments must be provided")
@@ -28,14 +36,8 @@ class SeekPaginator(object):
         query_set = self.query_set
 
         if value is not None and pk is not None:
-            if self.lookup_field not in ("pk", "id"):
-                lookup = "%s__lte" % self.lookup_field
-                kwargs = {lookup: value, "pk__lt": pk}
-            else:
-                lookup = "%s__lt" % self.lookup_field
-                kwargs = {lookup: value, }
-
-            query_set = query_set.filter(**kwargs)
+            lookup = self.prepare_lookup(value, pk)
+            query_set = query_set.filter(**lookup)
 
         order = self.prepare_order()
         query_set = query_set.order_by(*order)[:self.per_page + 1]
