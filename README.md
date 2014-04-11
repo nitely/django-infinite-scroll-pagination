@@ -11,7 +11,7 @@ soon
 infinite-scroll-pagination requires the following software to be installed:
 
 * Python 2.7
-* Django +1.3 (tested locally on 1.6)
+* Django +1.4 (tested locally on 1.6)
 
 ## Configuration
 

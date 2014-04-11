@@ -6,10 +6,7 @@ import json
 from django.test import TestCase
 from django.core.urlresolvers import reverse
 
-try:
-    from django.utils import timezone
-except ImportError:
-    timezone = datetime.datetime
+from django.utils import timezone
 
 from models import Article
 from infinite_scroll_pagination.paginator import SeekPaginator
