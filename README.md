@@ -92,7 +92,7 @@ data = {'objects_left_count': page_first.objects_left,
 * I decided not to implement the *get previous page* because there is no way to know if the previous page even exists anymore, rows may have been removed.
 Although, it'd work for dynamic content that inserts rows (but does not delete them).
 If you have some thoughts about how this can be solved, you may open an issue.
-* Order is DESC (from newest to latest). You may submit a pull request for ASC order support.
+* Order is DESC (from newest to oldest). You may submit a pull request for ASC order support.
 
 ## Contributing
 
