@@ -24,10 +24,18 @@ class PaginatorTest(TestCase):
         self.paginator = SeekPaginator(Article.objects.all(), per_page=10, lookup_field="date_unique")
 
     def test_prepare_order(self):
-        raise Exception()
+        self.assertListEqual(self.paginator.prepare_order(), ["-date_unique", "-pk"])
+        self.paginator.lookup_field = "pk"
+        self.assertListEqual(self.paginator.prepare_order(), ["-pk", ])
+        self.paginator.lookup_field = "id"
+        self.assertListEqual(self.paginator.prepare_order(), ["-id", ])
 
     def test_prepare_lookup(self):
-        raise Exception()
+        self.assertDictEqual(self.paginator.prepare_lookup(value=1, pk=2), {"date_unique__lte": 1, "pk__lt": 2})
+        self.paginator.lookup_field = "pk"
+        self.assertDictEqual(self.paginator.prepare_lookup(value=2, pk=2), {"pk__lt": 2, })
+        self.paginator.lookup_field = "id"
+        self.assertDictEqual(self.paginator.prepare_lookup(value=2, pk=2), {"id__lt": 2, })
 
     def test_paginator(self):
         articles = Article.objects.all().order_by("-date_unique")
@@ -86,22 +94,35 @@ class PaginatorTest(TestCase):
 class PageTest(TestCase):
 
     def setUp(self):
-        pass
+        date = timezone.now()
 
-    def test_has_next(self):
-        raise Exception()
+        for i in range(25):
+            seconds = datetime.timedelta(seconds=i)
+            Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
 
-    def test_has_other_pages(self):
-        raise Exception()
+        self.paginator = SeekPaginator(Article.objects.all(), per_page=10, lookup_field="date_unique")
 
     def test_unimplemented(self):
-        raise Exception()
+        page = self.paginator.page()
+        self.assertRaises(NotImplementedError, page.has_previous)
+        self.assertRaises(NotImplementedError, page.next_page_number)
+        self.assertRaises(NotImplementedError, page.previous_page_number)
+        self.assertRaises(NotImplementedError, page.start_index)
+        self.assertRaises(NotImplementedError, page.end_index)
 
     def test_objects_left(self):
-        raise Exception()
+        articles = Article.objects.all().order_by("-date_unique")
+        page = self.paginator.page()
+        self.assertEqual(page.objects_left, len(articles[self.paginator.per_page:]))
+
+        # last page
+        art = list(articles)[-self.paginator.per_page]
+        page_last = self.paginator.page(value=art.date_unique, pk=art.pk)
+        self.assertEqual(page_last.objects_left, 0)
 
     def test_pages_left(self):
-        raise Exception()
+        page = self.paginator.page()
+        self.assertEqual(page.pages_left, 2)
 
 
 class PaginatorViewTest(TestCase):

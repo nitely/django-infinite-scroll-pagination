@@ -59,8 +59,8 @@ class SeekPage(Page):
     def __init__(self, object_list, number, paginator, has_next):
         super(SeekPage, self).__init__(object_list, number, paginator)
         self._has_next = has_next
-        self._pages_left = None
         self._objects_left = None
+        self._pages_left = None
 
     def __repr__(self):
         return '<Page value %s>' % self.number or ""
@@ -89,7 +89,7 @@ class SeekPage(Page):
     @property
     def objects_left(self):
         """
-        Returns the total number of objects left
+        Returns the total number of *objects* left
         """
         if not self.has_next():
             return 0
@@ -106,7 +106,7 @@ class SeekPage(Page):
     @property
     def pages_left(self):
         """
-        Returns the total number of pages left
+        Returns the total number of *pages* left
         """
         if not self.objects_left:
             return 0
