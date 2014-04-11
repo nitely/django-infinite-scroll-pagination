@@ -1,6 +1,6 @@
 # infinite-scroll-pagination [![Build Status](https://travis-ci.org/nitely/django-infinite-scroll-pagination.png)](https://travis-ci.org/nitely/django-infinite-scroll-pagination) [![Coverage Status](https://coveralls.io/repos/nitely/django-infinite-scroll-pagination/badge.png?branch=master)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination?branch=master)
 
-infinite-scroll-pagination is a Django app that implements the [seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page) for scalable pagination.
+infinite-scroll-pagination is a Django app that implements the [seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page) (AKA Keyset Paging) for scalable pagination.
 
 ## How it works
 
