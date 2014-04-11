@@ -18,7 +18,7 @@ setup(
     long_description=README,
     url='https://github.com/nitely/django-infinite-scroll-pagination',
     packages=[
-        'infinite-scroll-pagination',
+        'infinite_scroll_pagination',
     ],
     include_package_data=True,
     zip_safe=False,
