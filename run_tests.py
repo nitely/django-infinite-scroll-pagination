@@ -13,7 +13,6 @@ if not settings.configured:
             }
         },
         INSTALLED_APPS=[
-            "infinite_scroll_pagination",
             "tests",
         ],
         TEMPLATE_CONTEXT_PROCESSORS=global_settings.TEMPLATE_CONTEXT_PROCESSORS +

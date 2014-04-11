@@ -26,7 +26,61 @@ infinite-scroll-pagination requires the following software to be installed:
 
 ## Usage
 
-soon
+Paging by datetime:
+
+```python
+# views.py
+
+from infinite_scroll_pagination.paginator import SeekPaginator
+
+
+def pagination_ajax(request, pk=None):
+    if not request.is_ajax():
+        return Http404()
+
+    if pk is not None:
+        # I'm doing an extra query because datetime serialization/deserialization is hard
+        date = get_object_or_404(Article, pk=pk).date
+    else:
+        # is requesting the first page
+        date = None
+
+    articles = Article.objects.all()
+    paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
+    page = paginator.page(value=date, pk=pk)
+
+    articles_list = [{"title": a.title, } for a in page]
+    data = {'articles': articles_list,
+            'has_next': page.has_next(),
+            'pk': page[-1].pk}
+
+    return HttpResponse(json.dumps(data), content_type="application/json")
+```
+
+Showing how many objects (or pages) are left:
+
+>**Note**: For *true* infinite scroll, this is not recommended. Since it does a `count()` query.
+>
+>It would be better if you increase an IntegerField every time a record is saved and do some javascript magic to know how many objects are left.
+
+```python
+
+#...
+
+paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
+page_first = paginator.page()
+
+data = {'objects_left_count': page_first.objects_left,
+        'pages_left_count': page_first.pages_left,
+        #...}
+```
+
+## Limitations
+
+* I decided not to implement the *get previous page* because there is no way to know if the previous page even exists anymore, rows may have been removed.
+Although, it'd work for dynamic content that inserts rows (but does not delete them).
+If you have some thoughts about how this can be solved, you may open an issue.
+* Order is DESC (from newest to latest). You may submit a pull request for ASC order support.
 
 ## Contributing
 
