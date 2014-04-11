@@ -80,7 +80,6 @@ Showing how many objects (or pages) are left:
 
 #...
 
-paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
 page_first = paginator.page()
 
 data = {'objects_left_count': page_first.objects_left,
