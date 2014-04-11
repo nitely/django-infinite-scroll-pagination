@@ -57,6 +57,19 @@ def pagination_ajax(request, pk=None):
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
+Paging by pk or id:
+
+```python
+# views.py
+
+def pagination_ajax(request, pk=None):
+    #...
+
+    page = paginator.page(value=pk, pk=pk)
+
+    #...
+```
+
 Showing how many objects (or pages) are left:
 
 >**Note**: For *true* infinite scroll, this is not recommended. Since it does a `count()` query.
