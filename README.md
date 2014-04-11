@@ -26,7 +26,7 @@ infinite-scroll-pagination requires the following software to be installed:
 
 ## Usage
 
-Paging by datetime:
+Paging by date or any other field:
 
 ```python
 # views.py
@@ -57,7 +57,7 @@ def pagination_ajax(request, pk=None):
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
-Paging by pk or id:
+Paging by pk or id (special case):
 
 ```python
 # views.py
