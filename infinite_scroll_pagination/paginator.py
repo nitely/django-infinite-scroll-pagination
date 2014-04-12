@@ -5,7 +5,7 @@ from math import ceil
 from django.core.paginator import EmptyPage, Page
 
 
-__all__ = ["SeekPaginator", "SeekPage"]
+__all__ = ["SeekPaginator", "SeekPage", "EmptyPage"]
 
 
 class SeekPaginator(object):

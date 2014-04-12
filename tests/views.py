@@ -5,7 +5,7 @@ import json
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 
-from infinite_scroll_pagination.paginator import SeekPaginator
+from infinite_scroll_pagination.paginator import SeekPaginator, EmptyPage
 
 from models import Article
 
@@ -21,7 +21,11 @@ def pagination_ajax(request, pk=None):
 
     articles = Article.objects.all()
     paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
-    page = paginator.page(value=date, pk=pk)
+
+    try:
+        page = paginator.page(value=date, pk=pk)
+    except EmptyPage:
+        return Http404()
 
     articles_list = [{"title": a.title, } for a in page]
     data = {'articles': articles_list,
