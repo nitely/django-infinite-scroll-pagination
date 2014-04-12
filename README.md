@@ -28,6 +28,8 @@ infinite-scroll-pagination requires the following software to be installed:
 
 Paging by date or any other field:
 
+>**Note**: `has_next()` is not reliable, records may have been deleted between requests. `page()` will raise an `EmptyPage` in this case, you should catch it and return a proper response.
+
 ```python
 # views.py
 
@@ -89,9 +91,7 @@ data = {'objects_left_count': page_first.objects_left,
 
 ## Limitations
 
-* I decided not to implement the *get previous page* because there is no way to know if the previous page even exists anymore, rows may have been removed.
-Although, it'd work for dynamic content that inserts rows (but does not delete them).
-If you have some thoughts about how this can be solved, you may open an issue.
+* *get previous page* will get implemented in the future, it's not there at this time.
 * Order is DESC (from newest to oldest). You may submit a pull request for ASC order support.
 
 ## Contributing
