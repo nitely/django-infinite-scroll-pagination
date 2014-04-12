@@ -28,12 +28,12 @@ infinite-scroll-pagination requires the following software to be installed:
 
 Paging by date or any other field:
 
->**Note**: `has_next()` is not reliable, records may have been deleted between requests. `page()` will raise an `EmptyPage` in this case, you should catch it and return a proper response.
+>**Note**: `has_next()` is not reliable, records may have been deleted in between requests. `page()` will raise an `EmptyPage` in this case, you should catch it and return a proper response.
 
 ```python
 # views.py
 
-from infinite_scroll_pagination.paginator import SeekPaginator
+from infinite_scroll_pagination.paginator import SeekPaginator, EmptyPage
 
 
 def pagination_ajax(request, pk=None):
@@ -49,7 +49,11 @@ def pagination_ajax(request, pk=None):
 
     articles = Article.objects.all()
     paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
-    page = paginator.page(value=date, pk=pk)
+
+    try:
+        page = paginator.page(value=date, pk=pk)
+    except EmptyPage:
+        return Http404()
 
     articles_list = [{"title": a.title, } for a in page]
     data = {'articles': articles_list,
