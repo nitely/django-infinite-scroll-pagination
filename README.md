@@ -58,7 +58,7 @@ def pagination_ajax(request, pk=None):
     articles_list = [{"title": a.title, } for a in page]
     data = {'articles': articles_list,
             'has_next': page.has_next(),
-            'pk': page[-1].pk}
+            'pk': page.next_page_pk()}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
@@ -88,8 +88,8 @@ Showing how many objects (or pages) are left:
 
 page_first = paginator.page()
 
-data = {'objects_left_count': page_first.objects_left,
-        'pages_left_count': page_first.pages_left,
+data = {'objects_left_count': page_first.objects_left(),
+        'pages_left_count': page_first.pages_left(),
         #...}
 ```
 
@@ -97,6 +97,7 @@ data = {'objects_left_count': page_first.objects_left,
 
 * *get previous page* will get implemented in the future, it's not there at this time.
 * Order is DESC (from newest to oldest). You may submit a pull request for ASC order support.
+* Lazy pagination is not supported, yet.
 
 ## Contributing
 

@@ -115,3 +115,6 @@ class SeekPage(Page):
             self._pages_left = int(ceil(self.objects_left / float(self.paginator.per_page)))
 
         return self._pages_left
+
+    def next_page_pk(self):
+        return self.object_list[-1].pk

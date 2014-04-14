@@ -124,6 +124,10 @@ class PageTest(TestCase):
         page = self.paginator.page()
         self.assertEqual(page.pages_left, 2)
 
+    def test_next_page_pk(self):
+        page = self.paginator.page()
+        self.assertEqual(page.next_page_pk(), page[-1].pk)
+
 
 class PaginatorViewTest(TestCase):
 
