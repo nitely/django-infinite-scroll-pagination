@@ -3,6 +3,7 @@
 from math import ceil
 
 from django.core.paginator import EmptyPage, Page
+from django.db.models import Q
 
 
 __all__ = ["SeekPaginator", "SeekPage", "EmptyPage"]
@@ -26,10 +27,14 @@ class SeekPaginator(object):
     def prepare_lookup(self, value, pk):
         if self.lookup_field not in ("pk", "id"):
             lookup = "%s__lte" % self.lookup_field
-            return {lookup: value, "pk__lt": pk}
+            lookup_filter = {lookup: value, }
+            lookup_exclude = {self.lookup_field: value, "pk__gte": pk, }
+            return lookup_filter, lookup_exclude
         else:
             lookup = "%s__lt" % self.lookup_field
-            return {lookup: value, }
+            lookup_filter = {lookup: value, }
+            lookup_exclude = None
+            return lookup_filter, lookup_exclude
 
     def page(self, value=None, pk=None):
         if (value is None and pk is not None) or (value is not None and pk is None):
@@ -38,8 +43,11 @@ class SeekPaginator(object):
         query_set = self.query_set
 
         if value is not None and pk is not None:
-            lookup = self.prepare_lookup(value, pk)
-            query_set = query_set.filter(**lookup)
+            lookup_filter, lookup_exclude = self.prepare_lookup(value, pk)
+            query_set = query_set.filter(**lookup_filter)
+
+            if lookup_exclude:
+                query_set = query_set.exclude(**lookup_exclude)
 
         order = self.prepare_order()
         query_set = query_set.order_by(*order)[:self.per_page + 1]
@@ -97,9 +105,14 @@ class SeekPage(Page):
         if self._objects_left is None:
             last = self.object_list[-1]
             value = getattr(last, self.paginator.lookup_field)
-            lookup = self.paginator.prepare_lookup(value, last.pk)
+            lookup_filter, lookup_exclude = self.paginator.prepare_lookup(value, last.pk)
+            query_set = self.paginator.query_set.filter(**lookup_filter)
+
+            if lookup_exclude:
+                query_set = query_set.exclude(**lookup_exclude)
+
             order = self.paginator.prepare_order()
-            self._objects_left = self.paginator.query_set.filter(**lookup).order_by(*order).count()
+            self._objects_left = query_set.order_by(*order).count()
 
         return self._objects_left
 
