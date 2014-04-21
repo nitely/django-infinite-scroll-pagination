@@ -31,11 +31,19 @@ class PaginatorTest(TestCase):
         self.assertListEqual(self.paginator.prepare_order(), ["-id", ])
 
     def test_prepare_lookup(self):
-        self.assertDictEqual(self.paginator.prepare_lookup(value=1, pk=2), {"date_unique__lte": 1, "pk__lt": 2})
+        lookup_f, lookup_e = self.paginator.prepare_lookup(value=1, pk=2)
+        self.assertDictEqual(lookup_f, {"date_unique__lte": 1, })
+        self.assertDictEqual(lookup_e, {"date_unique": 1, "pk__gte": 2})
+
         self.paginator.lookup_field = "pk"
-        self.assertDictEqual(self.paginator.prepare_lookup(value=2, pk=2), {"pk__lt": 2, })
+        lookup_f, lookup_e = self.paginator.prepare_lookup(value=2, pk=2)
+        self.assertDictEqual(lookup_f, {"pk__lt": 2, })
+        self.assertIsNone(lookup_e)
+
         self.paginator.lookup_field = "id"
-        self.assertDictEqual(self.paginator.prepare_lookup(value=2, pk=2), {"id__lt": 2, })
+        lookup_f, lookup_e = self.paginator.prepare_lookup(value=2, pk=2)
+        self.assertDictEqual(lookup_f, {"id__lt": 2, })
+        self.assertIsNone(lookup_e)
 
     def test_paginator(self):
         articles = Article.objects.all().order_by("-date_unique")
@@ -90,6 +98,32 @@ class PaginatorTest(TestCase):
         page_2 = self.paginator.page(value=page_1[-1].id, pk=page_1[-1].id)
         self.assertListEqual(list(page_2), list(articles[10:20]))
 
+    def test_reverse_date_for_pk(self):
+        """
+        When the date increment does not match the pk increment,
+        we should still get the right results.
+        """
+        Article.objects.all().delete()
+
+        # asc order date and desc order pk
+        date = timezone.now()
+        dates = reversed([date + datetime.timedelta(seconds=seconds)
+                          for seconds in range(25)])
+
+        for i, d in enumerate(dates):
+            Article.objects.create(title="%s" % i, date=date, date_unique=d)
+
+        articles = Article.objects.all().order_by("-date_unique")
+
+        page_1 = self.paginator.page()
+        self.assertListEqual(list(page_1), list(articles[:10]))
+
+        page_2 = self.paginator.page(value=page_1[-1].date_unique, pk=page_1[-1].pk)
+        self.assertListEqual(list(page_2), list(articles[10:20]))
+
+        page_3 = self.paginator.page(value=page_2[-1].date_unique, pk=page_2[-1].pk)
+        self.assertListEqual(list(page_3), list(articles[20:]))
+
 
 class PageTest(TestCase):
 
@@ -123,6 +157,10 @@ class PageTest(TestCase):
     def test_pages_left(self):
         page = self.paginator.page()
         self.assertEqual(page.pages_left, 2)
+
+    def test_next_page_pk(self):
+        page = self.paginator.page()
+        self.assertEqual(page.next_page_pk(), page[-1].pk)
 
 
 class PaginatorViewTest(TestCase):
