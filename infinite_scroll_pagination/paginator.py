@@ -28,12 +28,12 @@ class SeekPaginator(object):
             lookup = "%s__lte" % self.lookup_field
             lookup_filter = {lookup: value, }
             lookup_exclude = {self.lookup_field: value, "pk__gte": pk, }
-            return lookup_filter, lookup_exclude
         else:
             lookup = "%s__lt" % self.lookup_field
             lookup_filter = {lookup: value, }
             lookup_exclude = None
-            return lookup_filter, lookup_exclude
+
+        return lookup_filter, lookup_exclude
 
     def page(self, value=None, pk=None):
         if (value is None and pk is not None) or (value is not None and pk is None):
