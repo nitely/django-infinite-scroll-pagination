@@ -3,7 +3,6 @@
 from math import ceil
 
 from django.core.paginator import EmptyPage, Page
-from django.db.models import Q
 
 
 __all__ = ["SeekPaginator", "SeekPage", "EmptyPage"]
