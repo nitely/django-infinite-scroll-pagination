@@ -24,6 +24,14 @@ class SeekPaginator(object):
             return [lookup_field_desc, ]
 
     def prepare_lookup(self, value, pk):
+        """
+        Lookup:
+
+        ...
+        WHERE date <= ?
+        AND NOT (date = ? AND id >= ?)
+        ORDER BY date DESC, id DESC
+        """
         if self.lookup_field not in ("pk", "id"):
             lookup = "%s__lte" % self.lookup_field
             lookup_exclude = {self.lookup_field: value, "pk__gte": pk, }
