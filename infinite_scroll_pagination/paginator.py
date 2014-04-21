@@ -26,13 +26,12 @@ class SeekPaginator(object):
     def prepare_lookup(self, value, pk):
         if self.lookup_field not in ("pk", "id"):
             lookup = "%s__lte" % self.lookup_field
-            lookup_filter = {lookup: value, }
             lookup_exclude = {self.lookup_field: value, "pk__gte": pk, }
         else:
             lookup = "%s__lt" % self.lookup_field
-            lookup_filter = {lookup: value, }
             lookup_exclude = None
 
+        lookup_filter = {lookup: value, }
         return lookup_filter, lookup_exclude
 
     def page(self, value=None, pk=None):
