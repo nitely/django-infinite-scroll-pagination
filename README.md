@@ -88,8 +88,8 @@ Showing how many objects (or pages) are left:
 
 page_first = paginator.page()
 
-data = {'objects_left_count': page_first.objects_left(),
-        'pages_left_count': page_first.pages_left(),
+data = {'objects_left_count': page_first.objects_left,
+        'pages_left_count': page_first.pages_left,
         #...}
 ```
 
