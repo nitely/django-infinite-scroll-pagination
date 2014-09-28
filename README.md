@@ -18,7 +18,7 @@ For a full explanation go to [the seek method](http://use-the-index-luke.com/sql
 infinite-scroll-pagination requires the following software to be installed:
 
 * Python 2.7
-* Django +1.4 (tested locally on 1.6)
+* Django 1.4, 1.5, 1.6 or 1.7
 
 ## Configuration
 
@@ -53,12 +53,12 @@ def pagination_ajax(request, pk=None):
     try:
         page = paginator.page(value=date, pk=pk)
     except EmptyPage:
-        return Http404()
-
-    articles_list = [{"title": a.title, } for a in page]
-    data = {'articles': articles_list,
-            'has_next': page.has_next(),
-            'pk': page.next_page_pk()}
+        data = {'error': "this page is empty", }
+    else:
+        articles_list = [{"title": a.title, } for a in page]
+        data = {'articles': articles_list,
+                'has_next': page.has_next(),
+                'pk': page.next_page_pk()}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
@@ -90,7 +90,8 @@ page_first = paginator.page()
 
 data = {'objects_left_count': page_first.objects_left,
         'pages_left_count': page_first.pages_left,
-        #...}
+        #...
+        }
 ```
 
 ## Limitations

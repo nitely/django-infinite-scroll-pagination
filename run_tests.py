@@ -21,6 +21,7 @@ if not settings.configured:
         DEBUG=False,
     )
 
+import django
 from django.test.simple import DjangoTestSuiteRunner
 
 
@@ -38,6 +39,9 @@ def run_tests(*test_args, **kwargs):
 
 
 if __name__ == "__main__":
+    if hasattr(django, 'setup'):
+        django.setup()
+
     parser = OptionParser()
     parser.add_option("--failfast", action="store_true", default=False, dest="failfast")
     parser.add_option("--verbosity", action="store", default=1, type=int, dest="verbosity")
