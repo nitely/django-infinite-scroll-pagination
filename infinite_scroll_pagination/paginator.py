@@ -1,7 +1,5 @@
 #-*- coding: utf-8 -*-
 
-from math import ceil
-
 from django.core.paginator import EmptyPage, Page
 
 
@@ -131,7 +129,7 @@ class SeekPage(Page):
             return 0
 
         if self._pages_left is None:
-            self._pages_left = int(ceil(self.objects_left / float(self.paginator.per_page)))
+            self._pages_left = (-self.objects_left // self.paginator.per_page) * -1  # ceil
 
         return self._pages_left
 

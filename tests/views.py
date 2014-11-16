@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 
 from infinite_scroll_pagination.paginator import SeekPaginator, EmptyPage
 
-from models import Article
+from .models import Article
 
 
 def pagination_ajax(request, pk=None):
