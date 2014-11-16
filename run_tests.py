@@ -1,7 +1,8 @@
 #-*- coding: utf-8 -*-
 
-import sys
+from __future__ import unicode_literals
 from optparse import OptionParser
+import sys
 
 from django.conf import settings, global_settings
 

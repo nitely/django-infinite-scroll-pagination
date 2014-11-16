@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
 import datetime
 import json
 
@@ -8,7 +9,7 @@ from django.core.urlresolvers import reverse
 
 from django.utils import timezone
 
-from models import Article
+from .models import Article
 from infinite_scroll_pagination.paginator import SeekPaginator
 
 
@@ -175,7 +176,7 @@ class PaginatorViewTest(TestCase):
     def test_first_page(self):
         response = self.client.get(reverse('pagination-ajax'),
                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-        res = json.loads(response.content)
+        res = json.loads(response.content.decode('utf-8'))
         articles = Article.objects.all().order_by("-date", "-pk")
         self.assertEqual(res['articles'], [{u'title': a.title, } for a in articles[:20]])
 
@@ -185,5 +186,5 @@ class PaginatorViewTest(TestCase):
 
         response = self.client.get(reverse('pagination-ajax', kwargs={'pk': str(art.pk), }),
                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-        res = json.loads(response.content)
+        res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(res['articles'], [{u'title': a.title, } for a in articles[21:40]])
