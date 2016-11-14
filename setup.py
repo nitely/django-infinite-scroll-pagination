@@ -4,19 +4,23 @@
 import os
 from setuptools import setup
 
-README = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
+
+URL = 'https://github.com/nitely/django-infinite-scroll-pagination'
+README = "For more info, go to: {}".format(URL)
+
+VERSION = __import__('spirit').__version__
 
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-infinite-scroll-pagination',
-    version='0.1.3',
+    version=VERSION,
     description='infinite-scroll-pagination is a Django app that implements the *seek method* for scalable pagination..',
     author='Esteban Castro Borsani',
     author_email='ecastroborsani@gmail.com',
     long_description=README,
-    url='https://github.com/nitely/django-infinite-scroll-pagination',
+    url=URL,
     packages=[
         'infinite_scroll_pagination',
     ],
@@ -32,6 +36,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
     ],
