@@ -8,7 +8,7 @@ from setuptools import setup
 URL = 'https://github.com/nitely/django-infinite-scroll-pagination'
 README = "For more info, go to: {}".format(URL)
 
-VERSION = __import__('spirit').__version__
+VERSION = __import__('infinite_scroll_pagination').__version__
 
 # allow setup.py to be run from any path
 os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
