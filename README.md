@@ -17,8 +17,8 @@ For a full explanation go to [the seek method](http://use-the-index-luke.com/sql
 
 infinite-scroll-pagination requires the following software to be installed:
 
-* Python 2.7, 3.3 or 3.4
-* Django 1.5, 1.6 or 1.7
+* Python 2.7, 3.4 or 3.5
+* Django 1.8 LTS, 1.9 or 1.10
 
 ## Configuration
 
