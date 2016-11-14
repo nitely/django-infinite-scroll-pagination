@@ -2,9 +2,12 @@
 
 from __future__ import unicode_literals
 
-from django.conf.urls import patterns, url
+from django.conf.urls import include, url
 
-urlpatterns = patterns("tests.views",
-    url(r'^page/$', 'pagination_ajax', name='pagination-ajax'),
-    url(r'^page/(?P<pk>\d+)/$', 'pagination_ajax', name='pagination-ajax'),
-)
+import tests.views
+
+
+urlpatterns = [
+    url(r'^page/$', tests.views.pagination_ajax, name='pagination-ajax'),
+    url(r'^page/(?P<pk>\d+)/$', tests.views.pagination_ajax, name='pagination-ajax'),
+]
