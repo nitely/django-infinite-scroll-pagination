@@ -42,6 +42,7 @@ class SeekPaginator(object):
         lookup_filter = {lookup: value, }
         return lookup_filter, lookup_exclude
 
+    # XXX pk is not needed when filtering by a unique value or by pk only
     def page(self, value=None, pk=None):
         if (value is None and pk is not None) or (value is not None and pk is None):
             raise ValueError("Both 'value' and 'pk' arguments must be provided")

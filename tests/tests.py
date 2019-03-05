@@ -5,7 +5,7 @@ import datetime
 import json
 
 from django.test import TestCase
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from django.utils import timezone
 
@@ -22,7 +22,8 @@ class PaginatorTest(TestCase):
             seconds = datetime.timedelta(seconds=i)
             Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
 
-        self.paginator = SeekPaginator(Article.objects.all(), per_page=10, lookup_field="date_unique")
+        self.paginator = SeekPaginator(
+            Article.objects.all(), per_page=10, lookup_field="date_unique")
 
     def test_prepare_order(self):
         self.assertListEqual(self.paginator.prepare_order(), ["-date_unique", "-pk"])
@@ -135,7 +136,8 @@ class PageTest(TestCase):
             seconds = datetime.timedelta(seconds=i)
             Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
 
-        self.paginator = SeekPaginator(Article.objects.all(), per_page=10, lookup_field="date_unique")
+        self.paginator = SeekPaginator(
+            Article.objects.all(), per_page=10, lookup_field="date_unique")
 
     def test_unimplemented(self):
         page = self.paginator.page()
@@ -174,8 +176,9 @@ class PaginatorViewTest(TestCase):
             Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
 
     def test_first_page(self):
-        response = self.client.get(reverse('pagination-ajax'),
-                                   HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        response = self.client.get(
+            reverse('pagination-ajax'),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         res = json.loads(response.content.decode('utf-8'))
         articles = Article.objects.all().order_by("-date", "-pk")
         self.assertEqual(res['articles'], [{u'title': a.title, } for a in articles[:20]])
@@ -184,7 +187,8 @@ class PaginatorViewTest(TestCase):
         articles = Article.objects.all().order_by("-date", "-pk")
         art = articles[20]
 
-        response = self.client.get(reverse('pagination-ajax', kwargs={'pk': str(art.pk), }),
-                                   HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        response = self.client.get(
+            reverse('pagination-ajax', kwargs={'pk': str(art.pk), }),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(res['articles'], [{u'title': a.title, } for a in articles[21:40]])
