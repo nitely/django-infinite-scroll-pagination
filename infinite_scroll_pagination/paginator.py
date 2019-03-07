@@ -152,5 +152,14 @@ class SeekPage(Page):
 
         return self._pages_left
 
-    def next_page_pk(self):
-        return self.object_list[-1].pk
+    def _some_page(self, index):
+        return {
+            self.paginator.lookup_field: getattr(
+                self.object_list[index], self.paginator.lookup_field),
+            'pk': self.object_list[index].pk}
+
+    def next_page(self):
+        return self._some_page(-1)
+
+    def prev_page(self):
+        return self._some_page(0)

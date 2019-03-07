@@ -56,7 +56,7 @@ def pagination_ajax(request, pk=None):
         created_at = get_object_or_404(Article, pk=pk).created_at
 
     articles = Article.objects.all()
-    paginator = SeekPaginator(articles, per_page=20, lookup_field='created_at')
+    paginator = SeekPaginator(articles, per_page=20, lookup_field='-created_at')
 
     try:
         page = paginator.page(value=created_at, pk=pk)
@@ -66,7 +66,7 @@ def pagination_ajax(request, pk=None):
         data = {
             'articles': [{'title': article.title} for article in page],
             'has_next': page.has_next(),
-            'pk': page.next_page_pk()}
+            'next_page': page.next_page()}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
@@ -123,10 +123,13 @@ class Article(models.Model):
   since the query has a `LIMIT`.
   See [indexes-ordering](https://www.postgresql.org/docs/9.3/indexes-ordering.html)
 
+## Scroll up/down
+
+# TODO: explain this. Requires implementing page(..., retrieve='prev')
+
 ## Limitations
 
 * *get previous page* will get implemented in the future, it's not there at this time.
-* Order is DESC (from newest to oldest). You may submit a pull request for ASC order support.
 * Lazy pagination is not supported, yet.
 
 ## Contributing
