@@ -11,53 +11,65 @@ __all__ = ["SeekPaginator", "SeekPage", "EmptyPage"]
 class SeekPaginator(object):
 
     def __init__(self, query_set, per_page, lookup_field):
+        assert isinstance(lookup_field, str), 'String expected'
+        assert isinstance(per_page, int), 'Int expected'
         self.query_set = query_set
         self.per_page = per_page
-        self.lookup_field = lookup_field
+        self.is_desc = lookup_field.startswith('-')
+        self.lookup_field = lookup_field.lstrip('-')
 
-    def prepare_order(self):
-        lookup_field_desc = "-%s" % self.lookup_field
+    def prepare_order(self, has_pk=False):
+        pk_sort = 'pk'
+        lookup_sort = self.lookup_field
+        if self.is_desc:
+            pk_sort = '-%s' % pk_sort
+            lookup_sort = '-%s' % lookup_sort
+        if has_pk:
+            return [lookup_sort, pk_sort]
+        return [lookup_sort]
 
-        if self.lookup_field not in ("pk", "id"):
-            return [lookup_field_desc, "-pk"]
-        else:
-            return [lookup_field_desc, ]
-
-    def prepare_lookup(self, value, pk):
+    def prepare_lookup(self, value, pk=None):
         """
-        Lookup:
+        Lookup (-DESC)::
 
-        ...
-        WHERE date <= ?
-        AND NOT (date = ? AND id >= ?)
-        ORDER BY date DESC, id DESC
+            # ...
+            WHERE date <= ?
+            AND NOT (date = ? AND id >= ?)
+            ORDER BY date DESC, id DESC
+
         """
-        if self.lookup_field not in ("pk", "id"):
-            lookup = "%s__lte" % self.lookup_field
-            lookup_exclude = {self.lookup_field: value, "pk__gte": pk, }
-        else:
-            lookup = "%s__lt" % self.lookup_field
-            lookup_exclude = None
-
-        lookup_filter = {lookup: value, }
+        lookup_include = '%s__gt' % self.lookup_field
+        lookup_exclude_pk = 'pk__lte'
+        if self.is_desc:
+            lookup_include = '%s__lt' % self.lookup_field
+            lookup_exclude_pk = 'pk__gte'
+        lookup_exclude = None
+        if pk is not None:
+            lookup_include = "%se" % lookup_include
+            lookup_exclude = {self.lookup_field: value, lookup_exclude_pk: pk}
+        lookup_filter = {lookup_include: value}
         return lookup_filter, lookup_exclude
 
-    # XXX pk is not needed when filtering by a unique value or by pk only
-    def page(self, value=None, pk=None):
-        if (value is None and pk is not None) or (value is not None and pk is None):
-            raise ValueError("Both 'value' and 'pk' arguments must be provided")
+    def apply_filter(self, query_set, value, pk):
+        lookup_filter, lookup_exclude = self.prepare_lookup(value, pk)
+        query_set = query_set.filter(**lookup_filter)
+        if lookup_exclude:
+            query_set = query_set.exclude(**lookup_exclude)
+        return query_set
 
+    def page(self, value, pk=None):
+        """
+        The param ``value`` may be ``None`` on the first page.
+        Pass both ``value`` and ``pk`` when the ``lookup_field``'s model
+        field is not unique. Otherwise, pass just the ``value``
+        """
         query_set = self.query_set
+        if value is not None:
+            query_set = self.apply_filter(query_set, value, pk)
 
-        if value is not None and pk is not None:
-            lookup_filter, lookup_exclude = self.prepare_lookup(value, pk)
-            query_set = query_set.filter(**lookup_filter)
-
-            if lookup_exclude:
-                query_set = query_set.exclude(**lookup_exclude)
-
-        order = self.prepare_order()
-        query_set = query_set.order_by(*order)[:self.per_page + 1]
+        query_set = query_set.order_by(
+            *self.prepare_order(
+                has_pk=pk is not None))[:self.per_page + 1]
 
         object_list = list(query_set)
         has_next = len(object_list) > self.per_page
@@ -66,7 +78,11 @@ class SeekPaginator(object):
         if not object_list and value:
             raise EmptyPage("That page contains no results")
 
-        return SeekPage(object_list=object_list, number=value, paginator=self, has_next=has_next)
+        return SeekPage(
+            object_list=object_list,
+            number=value,
+            paginator=self,
+            has_next=has_next)
 
 
 class SeekPage(Page):
