@@ -5,7 +5,16 @@ from __future__ import unicode_literals
 from django.core.paginator import EmptyPage, Page
 
 
-__all__ = ["SeekPaginator", "SeekPage", "EmptyPage"]
+__all__ = [
+    "SeekPaginator",
+    "SeekPage",
+    "EmptyPage",
+    'NEXT_PAGE',
+    'PREV_PAGE']
+
+
+NEXT_PAGE = 1
+PREV_PAGE = 2
 
 
 class SeekPaginator(object):
@@ -16,6 +25,7 @@ class SeekPaginator(object):
         self.query_set = query_set
         self.per_page = per_page
         self.is_desc = lookup_field.startswith('-')
+        self.is_asc = not self.is_desc
         self.lookup_field = lookup_field.lstrip('-')
 
     def prepare_order(self, has_pk=False):
@@ -28,19 +38,23 @@ class SeekPaginator(object):
             return [lookup_sort, pk_sort]
         return [lookup_sort]
 
-    def prepare_lookup(self, value, pk=None):
+    def prepare_lookup(self, value, pk, move_to):
         """
-        Lookup (-DESC)::
+        Skip the current record in case
+        there are multiple with the same value
+
+        Lookup next page (-DESC)::
 
             # ...
             WHERE date <= ?
             AND NOT (date = ? AND id >= ?)
-            ORDER BY date DESC, id DESC
+            ORDER BY date DESC, id DESC  # not done by this func
 
         """
         lookup_include = '%s__gt' % self.lookup_field
         lookup_exclude_pk = 'pk__lte'
-        if self.is_desc:
+        if ((self.is_desc and move_to == NEXT_PAGE) or
+                (self.is_asc and move_to == PREV_PAGE)):
             lookup_include = '%s__lt' % self.lookup_field
             lookup_exclude_pk = 'pk__gte'
         lookup_exclude = None
@@ -50,22 +64,25 @@ class SeekPaginator(object):
         lookup_filter = {lookup_include: value}
         return lookup_filter, lookup_exclude
 
-    def apply_filter(self, query_set, value, pk):
-        lookup_filter, lookup_exclude = self.prepare_lookup(value, pk)
+    def apply_filter(self, query_set, value, pk, move_to):
+        lookup_filter, lookup_exclude = self.prepare_lookup(
+            value=value, pk=pk, move_to=move_to)
         query_set = query_set.filter(**lookup_filter)
         if lookup_exclude:
             query_set = query_set.exclude(**lookup_exclude)
         return query_set
 
-    def page(self, value, pk=None):
+    def page(self, value, pk=None, move_to=NEXT_PAGE):
         """
         The param ``value`` may be ``None`` on the first page.
         Pass both ``value`` and ``pk`` when the ``lookup_field``'s model
         field is not unique. Otherwise, pass just the ``value``
         """
+        assert move_to in (NEXT_PAGE, PREV_PAGE)
         query_set = self.query_set
         if value is not None:
-            query_set = self.apply_filter(query_set, value, pk)
+            query_set = self.apply_filter(
+                query_set=query_set, value=value, pk=pk, move_to=move_to)
 
         query_set = query_set.order_by(
             *self.prepare_order(

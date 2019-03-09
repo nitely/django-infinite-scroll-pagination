@@ -129,7 +129,6 @@ class Article(models.Model):
 
 ## Limitations
 
-* *get previous page* will get implemented in the future, it's not there at this time.
 * Lazy pagination is not supported, yet.
 
 ## Contributing
