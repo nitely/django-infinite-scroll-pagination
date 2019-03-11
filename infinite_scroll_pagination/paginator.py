@@ -2,8 +2,9 @@
 
 from __future__ import unicode_literals
 
-from django.core.paginator import EmptyPage, Page
+import collections.abc
 
+from django.core.paginator import EmptyPage
 
 __all__ = [
     "SeekPaginator",
@@ -39,18 +40,6 @@ class SeekPaginator(object):
         return [lookup_sort]
 
     def prepare_lookup(self, value, pk, move_to):
-        """
-        Skip the current record in case
-        there are multiple with the same value
-
-        Lookup next page (-DESC)::
-
-            # ...
-            WHERE date <= ?
-            AND NOT (date = ? AND id >= ?)
-            ORDER BY date DESC, id DESC  # not done by this func
-
-        """
         lookup_include = '%s__gt' % self.lookup_field
         lookup_exclude_pk = 'pk__lte'
         if ((self.is_desc and move_to == NEXT_PAGE) or
@@ -64,12 +53,34 @@ class SeekPaginator(object):
         lookup_filter = {lookup_include: value}
         return lookup_filter, lookup_exclude
 
-    def apply_filter(self, query_set, value, pk, move_to):
+    def apply_filter(self, value, pk, move_to):
+        query_set = self.query_set
         lookup_filter, lookup_exclude = self.prepare_lookup(
             value=value, pk=pk, move_to=move_to)
         query_set = query_set.filter(**lookup_filter)
         if lookup_exclude:
             query_set = query_set.exclude(**lookup_exclude)
+        return query_set
+
+    def seek(self, value, pk, move_to):
+        """
+        Skip the current record in case
+        there are multiple with the same value
+
+        Lookup next page (-DESC)::
+
+            # ...
+            WHERE date <= ?
+            AND NOT (date = ? AND id >= ?)
+            ORDER BY date DESC, id DESC
+
+        """
+        query_set = self.query_set
+        if value is not None:
+            query_set = self.apply_filter(
+                value=value, pk=pk, move_to=move_to)
+        query_set = query_set.order_by(
+            *self.prepare_order(has_pk=pk is not None))
         return query_set
 
     def page(self, value, pk=None, move_to=NEXT_PAGE):
@@ -79,95 +90,92 @@ class SeekPaginator(object):
         field is not unique. Otherwise, pass just the ``value``
         """
         assert move_to in (NEXT_PAGE, PREV_PAGE)
-        query_set = self.query_set
-        if value is not None:
-            query_set = self.apply_filter(
-                query_set=query_set, value=value, pk=pk, move_to=move_to)
+        query_set = self.seek(
+            value=value, pk=pk, move_to=move_to)
 
-        query_set = query_set.order_by(
-            *self.prepare_order(
-                has_pk=pk is not None))[:self.per_page + 1]
-
-        object_list = list(query_set)
-        has_next = len(object_list) > self.per_page
-        object_list = object_list[:self.per_page]
-
-        if not object_list and value:
-            raise EmptyPage("That page contains no results")
+        if value and not query_set.exists():
+            raise EmptyPage()
 
         return SeekPage(
-            object_list=object_list,
-            number=value,
-            paginator=self,
-            has_next=has_next)
+            query_set=query_set,
+            key={'value': value, 'pk': pk},
+            paginator=self)
 
 
-class SeekPage(Page):
+class SeekPage(collections.abc.Sequence):
 
-    def __init__(self, object_list, number, paginator, has_next):
-        super(SeekPage, self).__init__(object_list, number, paginator)
-        self._has_next = has_next
-        self._objects_left = None
-        self._pages_left = None
+    def __init__(self, query_set, key, paginator):
+        self._query_set = query_set
+        self._key = key
+        self._object_list = None
+        self.paginator = paginator
 
     def __repr__(self):
-        return '<Page value %s>' % self.number or ""
-
-    def has_next(self):
-        return self._has_next
-
-    def has_previous(self):
-        raise NotImplementedError
-
-    def has_other_pages(self):
-        return self.has_next()
-
-    def next_page_number(self):
-        raise NotImplementedError
-
-    def previous_page_number(self):
-        raise NotImplementedError
-
-    def start_index(self):
-        raise NotImplementedError
-
-    def end_index(self):
-        raise NotImplementedError
+        return '<Page value={value} pk={pk}>'.format(**self._key)
 
     @property
-    def objects_left(self):
-        """
-        Returns the total number of *objects* left
-        """
-        if not self.has_next():
-            return 0
+    def object_list(self):
+        if self._object_list is not None:
+            return self._object_list
+        # We could fetch an extra item an
+        # save a query on has_prev/next_page,
+        # but meh, the query for hax_X should be fairly cheap
+        self._object_list = list(self._query_set[:self.paginator.per_page])
+        return self._object_list
 
-        if self._objects_left is None:
+    def _some_seek(self, direction):
+        assert self.object_list
+        assert direction in (NEXT_PAGE, PREV_PAGE)
+        last = self.object_list[0]
+        if direction == NEXT_PAGE:
             last = self.object_list[-1]
-            value = getattr(last, self.paginator.lookup_field)
-            lookup_filter, lookup_exclude = self.paginator.prepare_lookup(value, last.pk)
-            query_set = self.paginator.query_set.filter(**lookup_filter)
+        pk = None
+        if self._key['pk'] is not None:
+            pk = last.pk
+        return self.paginator.seek(
+            value=getattr(last, self.paginator.lookup_field),
+            pk=pk,
+            move_to=direction)
 
-            if lookup_exclude:
-                query_set = query_set.exclude(**lookup_exclude)
+    # XXX make it a property as in Page
+    def has_next_page(self):
+        if not self.object_list:
+            return False
+        return self._some_seek(NEXT_PAGE).exists()
 
-            order = self.paginator.prepare_order()
-            self._objects_left = query_set.order_by(*order).count()
+    def has_prev_page(self):
+        if not self.object_list:
+            return False
+        return self._some_seek(PREV_PAGE).exists()
 
-        return self._objects_left
-
-    @property
-    def pages_left(self):
-        """
-        Returns the total number of *pages* left
-        """
-        if not self.objects_left:
+    def next_objects_left(self, limit=None):
+        if not self.object_list:
             return 0
+        qs = self._some_seek(NEXT_PAGE)
+        if limit:
+            qs = qs[:limit]
+        return qs.count()
 
-        if self._pages_left is None:
-            self._pages_left = (-self.objects_left // self.paginator.per_page) * -1  # ceil
+    def prev_objects_left(self, limit=None):
+        if not self.object_list:
+            return 0
+        qs = self._some_seek(PREV_PAGE)
+        if limit:
+            qs = qs[:limit]
+        return qs.count()
 
-        return self._pages_left
+    def _some_pages_left(self, direction, limit):
+        some_objects_left = self.prev_objects_left
+        if direction == NEXT_PAGE:
+            some_objects_left = self.next_objects_left
+        limit = (limit or 0) * self.paginator.per_page
+        return (-some_objects_left(limit) // self.paginator.per_page) * -1  # ceil
+
+    def next_pages_left(self, limit=None):
+        return self._some_pages_left(NEXT_PAGE, limit)
+
+    def prev_pages_left(self, limit=None):
+        return self._some_pages_left(PREV_PAGE, limit)
 
     def _some_page(self, index):
         return {

@@ -65,7 +65,7 @@ def pagination_ajax(request, pk=None):
     else:
         data = {
             'articles': [{'title': article.title} for article in page],
-            'has_next': page.has_next(),
+            'has_next': page.has_next_page(),
             'next_page': page.next_page()}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
@@ -83,24 +83,6 @@ def pagination_ajax(request, pk=None):
     page = paginator.page(value=pk)
 
     #...
-```
-
-Showing how many objects (or pages) are left:
-
-> Note: For *true* infinite pagination, this is not
-  recommended. Since it does a `count()` query.
-
-```python
-
-#...
-
-page = paginator.page()
-
-data = {
-    'objects_left_count': page.objects_left,
-    'pages_left_count': page.pages_left,
-    #...
-}
 ```
 
 ## Performance
@@ -123,13 +105,18 @@ class Article(models.Model):
   since the query has a `LIMIT`.
   See [indexes-ordering](https://www.postgresql.org/docs/9.3/indexes-ordering.html)
 
+Pass a limit to the following methods,
+or use them in places where there won't be
+many records, otherwise they get expensive fast:
+
+* ``next_objects_left``
+* ``prev_objects_left``
+* ``next_pages_left``
+* ``prev_pages_left``
+
 ## Scroll up/down
 
 # TODO: explain this. Requires implementing page(..., retrieve='prev')
-
-## Limitations
-
-* Lazy pagination is not supported, yet.
 
 ## Contributing
 
