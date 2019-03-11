@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import collections.abc
 
 from django.core.paginator import EmptyPage
+from django.db.models import QuerySet
 
 __all__ = [
     "SeekPaginator",
@@ -21,8 +22,9 @@ PREV_PAGE = 2
 class SeekPaginator(object):
 
     def __init__(self, query_set, per_page, lookup_field):
-        assert isinstance(lookup_field, str), 'String expected'
+        assert isinstance(query_set, QuerySet), 'QuerySet expected'
         assert isinstance(per_page, int), 'Int expected'
+        assert isinstance(lookup_field, str), 'String expected'
         self.query_set = query_set
         self.per_page = per_page
         self.is_desc = lookup_field.startswith('-')
@@ -113,6 +115,9 @@ class SeekPage(collections.abc.Sequence):
     def __repr__(self):
         return '<Page value={value} pk={pk}>'.format(**self._key)
 
+    def __getitem__(self, index):
+        return self.object_list[index]
+
     @property
     def object_list(self):
         if self._object_list is not None:
@@ -149,6 +154,7 @@ class SeekPage(collections.abc.Sequence):
         return self._some_seek(PREV_PAGE).exists()
 
     def next_objects_left(self, limit=None):
+        """Return the number of next records"""
         if not self.object_list:
             return 0
         qs = self._some_seek(NEXT_PAGE)
@@ -157,6 +163,7 @@ class SeekPage(collections.abc.Sequence):
         return qs.count()
 
     def prev_objects_left(self, limit=None):
+        """Return the number of prev records"""
         if not self.object_list:
             return 0
         qs = self._some_seek(PREV_PAGE)
@@ -172,19 +179,38 @@ class SeekPage(collections.abc.Sequence):
         return (-some_objects_left(limit) // self.paginator.per_page) * -1  # ceil
 
     def next_pages_left(self, limit=None):
+        """Return the number of next pages"""
         return self._some_pages_left(NEXT_PAGE, limit)
 
     def prev_pages_left(self, limit=None):
+        """Return the number of prev pages"""
         return self._some_pages_left(PREV_PAGE, limit)
 
     def _some_page(self, index):
+        if not self.object_list:
+            return {}
         return {
             self.paginator.lookup_field: getattr(
                 self.object_list[index], self.paginator.lookup_field),
             'pk': self.object_list[index].pk}
 
     def next_page(self):
+        """Return ``{'value': value, 'pk' pk}`` to fetch the next page"""
         return self._some_page(-1)
 
     def prev_page(self):
+        """Return ``{'value': value, 'pk' pk}`` to fetch the prev page"""
         return self._some_page(0)
+
+
+def paginate(query_set, per_page, lookup_field, value, pk=None, move_to=NEXT_PAGE):
+    """Return a ``SeekPage`` containing the paginated result"""
+    return (
+        SeekPaginator(
+            query_set=query_set,
+            per_page=per_page,
+            lookup_field=lookup_field)
+        .page(
+            value=value,
+            pk=pk,
+            move_to=move_to))

@@ -55,18 +55,27 @@ def pagination_ajax(request, pk=None):
         # I'm doing an extra query because datetime serialization/deserialization is hard
         created_at = get_object_or_404(Article, pk=pk).created_at
 
-    articles = Article.objects.all()
-    paginator = SeekPaginator(articles, per_page=20, lookup_field='-created_at')
-
     try:
-        page = paginator.page(value=created_at, pk=pk)
+        page = paginator.paginate(
+            query_set=Article.objects.all(),
+            lookup_field='-created_at',
+            value=created_at,
+            pk=pk,
+            per_page=20,
+            move_to=paginator.NEXT_PAGE)
     except EmptyPage:
         data = {'error': "this page is empty"}
     else:
         data = {
             'articles': [{'title': article.title} for article in page],
             'has_next': page.has_next_page(),
-            'next_page': page.next_page()}
+            'has_prev': page.has_prev_page(),
+            'next_objects_left': page.next_objects_left(limit=100),
+            'prev_objects_left': page.prev_objects_left(limit=100),
+            'next_pages_left': page.next_pages_left(limit=100),
+            'prev_pages_left': page.prev_pages_left(limit=100),
+            'next_page': page.next_page(),
+            'prev_page': page.prev_page()}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
@@ -79,8 +88,7 @@ Paging by pk, id or some `unique=True` field:
 def pagination_ajax(request, pk=None):
     #...
 
-    paginator = SeekPaginator(queryset, per_page=20, lookup_field='pk')
-    page = paginator.page(value=pk)
+    page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 
     #...
 ```
