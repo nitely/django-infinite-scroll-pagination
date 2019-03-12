@@ -101,8 +101,8 @@ page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 
 Since paginating by a datetime and a pk is so common,
 there is a serializers that will convert both values to ``timestamp-pk``,
-for example: ``1552349160.099628-5``, this can be later used
-as a query string ``https://example.some/articles/?p=1552349160.099628-5``.
+for example: ``1552349160.099628-5``, this can be later be used
+as a query string ``https://.../articles/?p=1552349160.099628-5``.
 There is no need to do the conversion client side, the server can send
 the next/previous page keyset serialized, as shown in the "Usage" section
 
