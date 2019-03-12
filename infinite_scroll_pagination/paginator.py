@@ -7,6 +7,8 @@ try:
 except ImportError:
     from collections import Sequence
 
+import six
+
 from django.core.paginator import EmptyPage
 from django.db.models import QuerySet
 
@@ -39,8 +41,8 @@ class SeekPaginator(object):
 
     def __init__(self, query_set, per_page, lookup_field):
         assert isinstance(query_set, QuerySet), 'QuerySet expected'
-        assert isinstance(per_page, int), 'Int expected'
-        assert isinstance(lookup_field, str), 'String expected'
+        assert isinstance(per_page, six.integer_types), 'Int expected'
+        assert isinstance(lookup_field, six.string_types), 'String expected'
         self.query_set = query_set
         self.per_page = per_page
         self.is_desc = lookup_field.startswith('-')

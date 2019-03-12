@@ -2,7 +2,11 @@
 
 infinite-scroll-pagination is a Django lib that implements
 [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
-(AKA Keyset Paging) for scalable pagination.
+(AKA Keyset Paging and Cursor Pagination) for scalable pagination.
+
+> Note despite its name, this library can be used as a regular paginator,
+  a better name would have been ``seek-paginator``, ``keyset-paginator`` or
+  ``cursor-paginator`` but it's too late for that now, haha :D
 
 ## How it works
 
