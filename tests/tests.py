@@ -181,8 +181,8 @@ class PageTest(TestCase):
             move_to=inf_paginator.PREV_PAGE)
         self.assertListEqual(list(page), list(articles[10:20]))
         page = paginator.page(
-            **page.prev_page(),
-            move_to=inf_paginator.PREV_PAGE)
+            move_to=inf_paginator.PREV_PAGE,
+            **page.prev_page())
         self.assertListEqual(list(page), list(articles[:10]))
 
     def test_next_objects_left(self):
@@ -247,8 +247,8 @@ class PageTest(TestCase):
             move_to=inf_paginator.PREV_PAGE)
         self.assertTrue(page.has_previous())
         page = paginator.page(
-            **page.prev_page(),
-            move_to=inf_paginator.PREV_PAGE)
+            move_to=inf_paginator.PREV_PAGE,
+            **page.prev_page())
         self.assertFalse(page.has_previous())
 
     def test_empty_first_page(self):
