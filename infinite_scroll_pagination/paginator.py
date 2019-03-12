@@ -2,7 +2,10 @@
 
 from __future__ import unicode_literals
 
-import collections.abc
+try:
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
 
 from django.core.paginator import EmptyPage
 from django.db.models import QuerySet
@@ -122,7 +125,7 @@ class SeekPaginator(object):
             paginator=self)
 
 
-class SeekPage(collections.abc.Sequence):
+class SeekPage(Sequence):
 
     def __init__(self, query_set, key, move_to, paginator):
         self._query_set = query_set
