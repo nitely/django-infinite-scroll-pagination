@@ -282,7 +282,7 @@ class PaginatorViewTest(TestCase):
         articles = Article.objects.all().order_by("-date", "-pk")
         self.assertEqual(
             res['articles'],
-            [{u'title': a.title, } for a in articles[:20]])
+            [{'title': a.title, } for a in articles[:20]])
 
     def test_page(self):
         articles = list(Article.objects.all().order_by("-date", "-pk"))
@@ -294,4 +294,4 @@ class PaginatorViewTest(TestCase):
         res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
             res['articles'],
-            [{u'title': a.title, } for a in articles[21:]])
+            [{'title': a.title, } for a in articles[21:]])

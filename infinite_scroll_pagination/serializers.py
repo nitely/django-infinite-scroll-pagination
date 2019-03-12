@@ -41,5 +41,5 @@ def to_page_key(value=None, pk=None):
     try:
         timestamp = value.timestamp()
     except AttributeError:
-        timestamp = time.mktime(value.timetuple())
+        timestamp = time.mktime(value.timetuple()) + value.microsecond / 1e6
     return '{}-{}'.format(timestamp, pk)
