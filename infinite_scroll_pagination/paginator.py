@@ -8,9 +8,9 @@ from django.core.paginator import EmptyPage
 from django.db.models import QuerySet
 
 __all__ = [
-    "SeekPaginator",
-    "SeekPage",
-    "EmptyPage",
+    'SeekPaginator',
+    'SeekPage',
+    'EmptyPage',
     'NEXT_PAGE',
     'PREV_PAGE']
 

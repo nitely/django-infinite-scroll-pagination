@@ -43,23 +43,30 @@ This example pages by a `created_at` date field:
 ```python
 # views.py
 
+import json
+
+from django.http import Http404, HttpResponse
+
 from infinite_scroll_pagination import paginator
+from infinite_scroll_pagination import serializers
+
+from .models import Article
 
 
-def pagination_ajax(request, pk=None):
+def pagination_ajax(request):
     if not request.is_ajax():
         return Http404()
 
-    created_at = None
-    if pk is not None:
-        # I'm doing an extra query because datetime serialization/deserialization is hard
-        created_at = get_object_or_404(Article, pk=pk).created_at
+    try:
+        value, pk = serializers.page_key(request.GET.get('p', ''))
+    except serializers.InvalidPage:
+        return Http404()
 
     try:
         page = paginator.paginate(
             query_set=Article.objects.all(),
             lookup_field='-created_at',
-            value=created_at,
+            value=value,
             pk=pk,
             per_page=20,
             move_to=paginator.NEXT_PAGE)
@@ -74,8 +81,8 @@ def pagination_ajax(request, pk=None):
             'prev_objects_left': page.prev_objects_left(limit=100),
             'next_pages_left': page.next_pages_left(limit=100),
             'prev_pages_left': page.prev_pages_left(limit=100),
-            'next_page': page.next_page(),
-            'prev_page': page.prev_page()}
+            'next_page': serializers.to_page_key(**page.next_page()),
+            'prev_page': serializers.to_page_key(**page.prev_page())}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
@@ -84,6 +91,28 @@ Paging by pk, id or some `unique=True` field:
 
 ```python
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
+```
+
+## Serializers
+
+Since paginating by a datetime and a pk is so common,
+there is a serializers that will convert both values to ``timestamp-pk``,
+for example: ``1552349160.099628-5``, this can be later used
+as a query string ``https://example.some/articles/?p=1552349160.099628-5``.
+There is no need to do the conversion client side, the server can send
+the next/previous page keyset serialized, as shown in the "Usage" section
+
+Serialize:
+
+```python
+next_page = serializers.to_page_key(**page.next_page())
+prev_page = serializers.to_page_key(**page.prev_page())
+```
+
+Deserialize:
+
+```python
+value, pk = serializers.page_key(request.GET.get('p', ''))
 ```
 
 ## Performance

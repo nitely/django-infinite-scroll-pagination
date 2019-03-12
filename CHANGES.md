@@ -3,12 +3,13 @@
 
 * Adds support for Django 1.11, 2.0 and 2.1.
   No changes were required to support these
+* Adds ``serializers.page_key`` and ``serializers.to_page_key``
 * Adds previous page fetching
 * Support passing just ``value``
   in case ``lookup_field`` is a unique field
 * Support for order ASC and DESC
 * Pagination is lazy now
-* Adds ``has_prev_page``, ``next_objects_left``,
+* Adds ``has_previous``, ``next_objects_left``,
   ``prev_objects_left``, ``next_pages_left``,
   ``prev_pages_left`` and ``prev_page`` to ``SeekPage``
 * Adds ``paginate``, which is a shortcut

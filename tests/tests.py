@@ -10,9 +10,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .models import Article
-from .views import to_page_key
 from infinite_scroll_pagination.paginator import SeekPaginator
 from infinite_scroll_pagination import paginator as inf_paginator
+from infinite_scroll_pagination import serializers
 
 
 class PaginatorTest(TestCase):
@@ -287,9 +287,9 @@ class PaginatorViewTest(TestCase):
     def test_page(self):
         articles = list(Article.objects.all().order_by("-date", "-pk"))
         art = articles[20]
-        key = dict(value=art.date, pk=art.pk)
+        page = serializers.to_page_key(value=art.date, pk=art.pk)
         response = self.client.get(
-            reverse('pagination-ajax') + '?p={}'.format(to_page_key(**key)),
+            reverse('pagination-ajax') + '?p={}'.format(page),
             HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
