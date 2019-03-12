@@ -19,6 +19,19 @@ NEXT_PAGE = 1
 PREV_PAGE = 2
 
 
+class _NoPk:
+    def __str__(self):
+        return 'NoPk'
+
+    def __repr__(self):
+        return '<NoPk>'
+
+# We need a distinct value for None,
+# because None is a valid pk when fetching
+# the first page
+_NO_PK = _NoPk()
+
+
 class SeekPaginator(object):
 
     def __init__(self, query_set, per_page, lookup_field):
@@ -31,10 +44,11 @@ class SeekPaginator(object):
         self.is_asc = not self.is_desc
         self.lookup_field = lookup_field.lstrip('-')
 
-    def prepare_order(self, has_pk=False):
+    def prepare_order(self, has_pk, move_to):
         pk_sort = 'pk'
         lookup_sort = self.lookup_field
-        if self.is_desc:
+        if ((self.is_desc and move_to == NEXT_PAGE) or
+                (self.is_asc and move_to == PREV_PAGE)):
             pk_sort = '-%s' % pk_sort
             lookup_sort = '-%s' % lookup_sort
         if has_pk:
@@ -49,7 +63,7 @@ class SeekPaginator(object):
             lookup_include = '%s__lt' % self.lookup_field
             lookup_exclude_pk = 'pk__gte'
         lookup_exclude = None
-        if pk is not None:
+        if pk is not _NO_PK:
             lookup_include = "%se" % lookup_include
             lookup_exclude = {self.lookup_field: value, lookup_exclude_pk: pk}
         lookup_filter = {lookup_include: value}
@@ -82,14 +96,17 @@ class SeekPaginator(object):
             query_set = self.apply_filter(
                 value=value, pk=pk, move_to=move_to)
         query_set = query_set.order_by(
-            *self.prepare_order(has_pk=pk is not None))
+            *self.prepare_order(
+                has_pk=pk is not _NO_PK, move_to=move_to))
         return query_set
 
-    def page(self, value, pk=None, move_to=NEXT_PAGE):
+    def page(self, value, pk=_NO_PK, move_to=NEXT_PAGE):
         """
-        The param ``value`` may be ``None`` on the first page.
+        The param ``value`` may be ``None`` to get the first page.
         Pass both ``value`` and ``pk`` when the ``lookup_field``'s model
-        field is not unique. Otherwise, pass just the ``value``
+        field is not unique. Otherwise, just pass the ``value``
+
+        :raises: ``EmptyPage``
         """
         assert move_to in (NEXT_PAGE, PREV_PAGE)
         query_set = self.seek(
@@ -101,19 +118,24 @@ class SeekPaginator(object):
         return SeekPage(
             query_set=query_set,
             key={'value': value, 'pk': pk},
+            move_to=move_to,
             paginator=self)
 
 
 class SeekPage(collections.abc.Sequence):
 
-    def __init__(self, query_set, key, paginator):
+    def __init__(self, query_set, key, move_to, paginator):
         self._query_set = query_set
         self._key = key
+        self._move_to = move_to
         self._object_list = None
         self.paginator = paginator
 
     def __repr__(self):
         return '<Page value={value} pk={pk}>'.format(**self._key)
+
+    def __len__(self):
+        return len(self.object_list)
 
     def __getitem__(self, index):
         return self.object_list[index]
@@ -126,6 +148,8 @@ class SeekPage(collections.abc.Sequence):
         # save a query on has_prev/next_page,
         # but meh, the query for hax_X should be fairly cheap
         self._object_list = list(self._query_set[:self.paginator.per_page])
+        if self._move_to == PREV_PAGE:
+            self._object_list.reverse()
         return self._object_list
 
     def _some_seek(self, direction):
@@ -134,21 +158,20 @@ class SeekPage(collections.abc.Sequence):
         last = self.object_list[0]
         if direction == NEXT_PAGE:
             last = self.object_list[-1]
-        pk = None
-        if self._key['pk'] is not None:
+        pk = _NO_PK
+        if self._key['pk'] is not _NO_PK:
             pk = last.pk
         return self.paginator.seek(
             value=getattr(last, self.paginator.lookup_field),
             pk=pk,
             move_to=direction)
 
-    # XXX make it a property as in Page
-    def has_next_page(self):
+    def has_next(self):
         if not self.object_list:
             return False
         return self._some_seek(NEXT_PAGE).exists()
 
-    def has_prev_page(self):
+    def has_previous(self):
         if not self.object_list:
             return False
         return self._some_seek(PREV_PAGE).exists()
@@ -189,10 +212,13 @@ class SeekPage(collections.abc.Sequence):
     def _some_page(self, index):
         if not self.object_list:
             return {}
-        return {
-            self.paginator.lookup_field: getattr(
-                self.object_list[index], self.paginator.lookup_field),
-            'pk': self.object_list[index].pk}
+        key = {
+            'value': getattr(
+                self.object_list[index],
+                self.paginator.lookup_field)}
+        if self._key['pk'] is not _NO_PK:
+            key['pk'] = self.object_list[index].pk
+        return key
 
     def next_page(self):
         """Return ``{'value': value, 'pk' pk}`` to fetch the next page"""

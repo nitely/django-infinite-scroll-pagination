@@ -43,7 +43,7 @@ This example pages by a `created_at` date field:
 ```python
 # views.py
 
-from infinite_scroll_pagination.paginator import SeekPaginator, EmptyPage
+from infinite_scroll_pagination import paginator
 
 
 def pagination_ajax(request, pk=None):
@@ -63,13 +63,13 @@ def pagination_ajax(request, pk=None):
             pk=pk,
             per_page=20,
             move_to=paginator.NEXT_PAGE)
-    except EmptyPage:
+    except paginator.EmptyPage:
         data = {'error': "this page is empty"}
     else:
         data = {
             'articles': [{'title': article.title} for article in page],
-            'has_next': page.has_next_page(),
-            'has_prev': page.has_prev_page(),
+            'has_next': page.has_next(),
+            'has_prev': page.has_previous(),
             'next_objects_left': page.next_objects_left(limit=100),
             'prev_objects_left': page.prev_objects_left(limit=100),
             'next_pages_left': page.next_pages_left(limit=100),
@@ -83,14 +83,7 @@ def pagination_ajax(request, pk=None):
 Paging by pk, id or some `unique=True` field:
 
 ```python
-# views.py
-
-def pagination_ajax(request, pk=None):
-    #...
-
-    page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
-
-    #...
+page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
 
 ## Performance
@@ -122,9 +115,23 @@ many records, otherwise they get expensive fast:
 * ``next_pages_left``
 * ``prev_pages_left``
 
-## Scroll up/down
+## Fetch next or prev page
 
-# TODO: explain this. Requires implementing page(..., retrieve='prev')
+Prev page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.PREV_PAGE)
+```
+
+Next page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.NEXT_PAGE)
+```
 
 ## Contributing
 

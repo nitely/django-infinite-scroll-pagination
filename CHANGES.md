@@ -3,6 +3,18 @@
 
 * Adds support for Django 1.11, 2.0 and 2.1.
   No changes were required to support these
+* Adds previous page fetching
+* Support passing just ``value``
+  in case ``lookup_field`` is a unique field
+* Support for order ASC and DESC
+* Pagination is lazy now
+* Adds ``has_prev_page``, ``next_objects_left``,
+  ``prev_objects_left``, ``next_pages_left``,
+  ``prev_pages_left`` and ``prev_page`` to ``SeekPage``
+* Adds ``paginate``, which is a shortcut
+  for ``SeekPaginator(...).page(...)``
+* Removed ``objects_left`` API, use
+  ``next_objects_left()`` instead
 * For those upgrading from 0.x, there are
   some backward incompatible changes.
   The following changes are required
