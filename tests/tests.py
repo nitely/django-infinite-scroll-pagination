@@ -4,9 +4,10 @@ from __future__ import unicode_literals
 import datetime
 import json
 
-from django.test import TestCase
-from django.urls import reverse
+import pytz
 
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from .models import Article
@@ -267,46 +268,69 @@ class PageTest(TestCase):
 
 class SerializerTest(TestCase):
 
+    @override_settings(USE_TZ=True)
     def test_page_key_to_page_key(self):
-        dt = datetime.datetime(
+        tz = pytz.timezone('UTC')
+        dt = tz.localize(datetime.datetime(
             year=2012, month=3, day=9, hour=22,
-            minute=30, second=40, microsecond=123123)
+            minute=30, second=40, microsecond=123123))
         key = serializers.to_page_key(value=dt, pk=1)
-        self.assertEqual(key, '1331343040.123123-1')
+        self.assertEqual(key, '1331332240.123123-1')
         page_dt, page_key = serializers.page_key(key)
         self.assertEqual(page_dt, dt)
         self.assertEqual(page_key, '1')
 
+    @override_settings(USE_TZ=True)
     def test_page_key_to_page_key_tight_api(self):
-        dt = datetime.datetime(
+        tz = pytz.timezone('UTC')
+        dt = tz.localize(datetime.datetime(
             year=2012, month=3, day=9, hour=22,
-            minute=30, second=40, microsecond=123123)
+            minute=30, second=40, microsecond=123123))
         self.assertEqual(
             serializers.to_page_key(
                 *serializers.page_key(
                     serializers.to_page_key(value=dt, pk=1))),
-            '1331343040.123123-1')
+            '1331332240.123123-1')
         self.assertEqual(
             serializers.to_page_key(
                 *serializers.page_key(
                     serializers.to_page_key(value=None, pk=None))),
             '')
 
+    @override_settings(USE_TZ=True)
     def test_to_page_key_microseconds(self):
-        dt = datetime.datetime(
+        tz = pytz.timezone('UTC')
+        dt = tz.localize(datetime.datetime(
             year=2012, month=3, day=9, hour=22,
-            minute=30, second=40, microsecond=0)
+            minute=30, second=40, microsecond=0))
         self.assertEqual(
             serializers.to_page_key(value=dt, pk=1),
-            '1331343040.000000-1')
+            '1331332240.000000-1')
 
+    @override_settings(USE_TZ=True)
     def test_page_key_microseconds(self):
-        dt = datetime.datetime(
+        tz = pytz.timezone('UTC')
+        dt = tz.localize(datetime.datetime(
             year=2012, month=3, day=9, hour=22,
-            minute=30, second=40, microsecond=0)
+            minute=30, second=40, microsecond=0))
         self.assertEqual(
             serializers.page_key(
                 serializers.to_page_key(value=dt, pk=1)),
+            (dt, '1'))
+
+    @override_settings(USE_TZ=False)
+    def test_page_key_to_page_key_naive(self):
+        # The datetime naive version should work too,
+        # but we can't compare the string key because
+        # it vary depending on the platform
+        dt = datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=123123)
+        self.assertEqual(
+            serializers.page_key(
+                serializers.to_page_key(
+                    *serializers.page_key(
+                        serializers.to_page_key(value=dt, pk=1)))),
             (dt, '1'))
 
 
@@ -329,6 +353,7 @@ class PaginatorViewTest(TestCase):
             res['articles'],
             [{'title': a.title, } for a in articles[:20]])
 
+    @override_settings(USE_TZ=False)
     def test_last_page(self):
         articles = list(Article.objects.all().order_by("-date", "-pk"))
         art = articles[20]
