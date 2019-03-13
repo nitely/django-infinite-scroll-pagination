@@ -280,6 +280,19 @@ class SerializerTest(TestCase):
         self.assertEqual(page_dt, dt)
         self.assertEqual(page_key, '1')
 
+    @override_settings(USE_TZ=True, TIME_ZONE='America/Argentina/Buenos_Aires')
+    def test_page_key_to_page_key_buenos_aires(self):
+        tz = pytz.timezone('UTC')
+        dt = tz.localize(datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=123123))
+        bs_as = pytz.timezone('America/Argentina/Buenos_Aires')
+        key = serializers.to_page_key(value=dt.astimezone(bs_as), pk=1)
+        self.assertEqual(key, '1331332240.123123-1')
+        page_dt, page_key = serializers.page_key(key)
+        self.assertEqual(page_dt, dt)
+        self.assertEqual(page_key, '1')
+
     @override_settings(USE_TZ=True)
     def test_page_key_to_page_key_tight_api(self):
         tz = pytz.timezone('UTC')
