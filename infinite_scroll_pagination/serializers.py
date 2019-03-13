@@ -12,7 +12,7 @@ __all__ = [
     'to_page_key',
     'InvalidPage']
 
-PAGE_RE = re.compile(r'^(?P<value>[0-9]+\.[0-9]+)-(?P<pk>[0-9]+)$')
+PAGE_RE = re.compile(r'^(?P<value>[0-9]+\.[0-9]{6})-(?P<pk>[0-9]+)$')
 
 
 def page_key(raw_page):

@@ -292,6 +292,23 @@ class SerializerTest(TestCase):
                     serializers.to_page_key(value=None, pk=None))),
             '')
 
+    def test_to_page_key_microseconds(self):
+        dt = datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=0)
+        self.assertEqual(
+            serializers.to_page_key(value=dt, pk=1),
+            '1331343040.000000-1')
+
+    def test_page_key_microseconds(self):
+        dt = datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=0)
+        self.assertEqual(
+            serializers.page_key(
+                serializers.to_page_key(value=dt, pk=1)),
+            (dt, '1'))
+
 
 class PaginatorViewTest(TestCase):
 
