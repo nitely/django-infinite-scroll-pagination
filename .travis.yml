@@ -4,10 +4,11 @@ python:
   - "2.7"
   - "3.4"
   - "3.5"
+  - "3.6"
 env:
-  - DJANGO=1.8.16
-  - DJANGO=1.9.11
-  - DJANGO=1.10.3
+  - DJANGO=1.11.20
+  - DJANGO=2.0.12
+  - DJANGO=2.1.7
 install:
   - pip install --upgrade pip
   - pip install -q Django==$DJANGO
@@ -15,4 +16,16 @@ install:
 script:
   - coverage run --source=. runtests.py
 after_success:
-- coveralls
+  - coveralls
+matrix:
+  exclude:
+    - python: "2.7"
+      env: DJANGO=2.0.12
+    - python: "2.7"
+      env: DJANGO=2.1.7
+    - python: "3.4"
+      env: DJANGO=2.1.7
+notifications:
+  email:
+    on_failure: never
+    on_success: never

@@ -1,118 +1,178 @@
 # infinite-scroll-pagination [![Build Status](https://travis-ci.org/nitely/django-infinite-scroll-pagination.png)](https://travis-ci.org/nitely/django-infinite-scroll-pagination) [![Coverage Status](https://coveralls.io/repos/nitely/django-infinite-scroll-pagination/badge.png?branch=master)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination?branch=master)
 
-infinite-scroll-pagination is a Django app that implements [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page) (AKA Keyset Paging) for scalable pagination.
+infinite-scroll-pagination is a Django lib that implements
+[the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
+(AKA Keyset Paging and Cursor Pagination) for scalable pagination.
+
+> Note despite its name, this library can be used as a regular paginator,
+  a better name would have been ``seek-paginator``, ``keyset-paginator`` or
+  ``cursor-paginator`` but it's too late for that now, haha :D
 
 ## How it works
 
-Keyset driven paging relies on remembering the top and bottom keys of the last displayed page, and requesting the next or previous set of rows, based on the top/last keyset
+Keyset driven paging relies on remembering the top and bottom keys of
+the last displayed page, and requesting the next or previous set of rows,
+based on the top/last keyset
 
 This approach has two main advantages over the *OFFSET/LIMIT* approach:
 
-* is correct: unlike the *offset/limit* based approach it correctly handles new entries and deleted entries. Last row of Page 4 does not show up as first row of Page 5 just because row 23 on Page 2 was deleted in the meantime. Nor do rows mysteriously vanish between pages. These anomalies are common with the *offset/limit* based approach, but the *keyset* based solution does a much better job at avoiding them.
-* is fast: all operations can be solved with a fast row positioning followed by a range scan in the desired direction
+* is correct: unlike the *offset/limit* based approach it correctly handles
+new entries and deleted entries. Last row of Page 4 does not show up as first
+row of Page 5 just because row 23 on Page 2 was deleted in the meantime.
+Nor do rows mysteriously vanish between pages. These anomalies are common
+with the *offset/limit* based approach, but the *keyset* based solution does
+a much better job at avoiding them.
+* is fast: all operations can be solved with a fast row positioning followed
+by a range scan in the desired direction
 
-For a full explanation go to [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
+For a full explanation go to
+[the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
 
 ## Requirements
 
 infinite-scroll-pagination requires the following software to be installed:
 
-* Python 2.7, 3.4 or 3.5
-* Django 1.8 LTS, 1.9 or 1.10
+* Python 2.7, 3.4, 3.5 or 3.6
+* Django 1.11 LTS, 2.0 or 2.1
 
-## Configuration
+## Django Rest Framework (DRF)
 
-1. None :smile:
+DRF has the built-in `CursorPagination`
+that is similar to this lib. Use that instead.
 
 ## Usage
 
-Paging by date or any other field:
-
->**Note**: `has_next()` is not reliable, records may have been deleted in between requests. `page()` will raise an `EmptyPage` in this case, you should catch it and return a proper response.
+This example pages by a `created_at` date field:
 
 ```python
 # views.py
 
-from infinite_scroll_pagination.paginator import SeekPaginator, EmptyPage
+import json
+
+from django.http import Http404, HttpResponse
+
+from infinite_scroll_pagination import paginator
+from infinite_scroll_pagination import serializers
+
+from .models import Article
 
 
-def pagination_ajax(request, pk=None):
+def pagination_ajax(request):
     if not request.is_ajax():
         return Http404()
 
-    if pk is not None:
-        # I'm doing an extra query because datetime serialization/deserialization is hard
-        date = get_object_or_404(Article, pk=pk).date
-    else:
-        # is requesting the first page
-        date = None
-
-    articles = Article.objects.all()
-    paginator = SeekPaginator(articles, per_page=20, lookup_field="date")
+    try:
+        value, pk = serializers.page_key(request.GET.get('p', ''))
+    except serializers.InvalidPage:
+        return Http404()
 
     try:
-        page = paginator.page(value=date, pk=pk)
-    except EmptyPage:
-        data = {'error': "this page is empty", }
+        page = paginator.paginate(
+            query_set=Article.objects.all(),
+            lookup_field='-created_at',
+            value=value,
+            pk=pk,
+            per_page=20,
+            move_to=paginator.NEXT_PAGE)
+    except paginator.EmptyPage:
+        data = {'error': "this page is empty"}
     else:
-        articles_list = [{"title": a.title, } for a in page]
-        data = {'articles': articles_list,
-                'has_next': page.has_next(),
-                'pk': page.next_page_pk()}
+        data = {
+            'articles': [{'title': article.title} for article in page],
+            'has_next': page.has_next(),
+            'has_prev': page.has_previous(),
+            'next_objects_left': page.next_objects_left(limit=100),
+            'prev_objects_left': page.prev_objects_left(limit=100),
+            'next_pages_left': page.next_pages_left(limit=100),
+            'prev_pages_left': page.prev_pages_left(limit=100),
+            'next_page': serializers.to_page_key(**page.next_page()),
+            'prev_page': serializers.to_page_key(**page.prev_page())}
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
-Paging by pk or id (special case):
+Paging by pk, id or some `unique=True` field:
 
 ```python
-# views.py
-
-def pagination_ajax(request, pk=None):
-    #...
-
-    page = paginator.page(value=pk, pk=pk)
-
-    #...
+page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
 
-Showing how many objects (or pages) are left:
+## Serializers
 
->**Note**: For *true* infinite scroll, this is not recommended. Since it does a `count()` query.
->
->It would be better if you increase an IntegerField every time a record is saved and do some javascript magic to know how many objects are left.
+Since paginating by a datetime and a pk is so common,
+there is a serializers that will convert both values to ``timestamp-pk``,
+for example: ``1552349160.099628-5``, this can be later be used
+as a query string ``https://.../articles/?p=1552349160.099628-5``.
+There is no need to do the conversion client side, the server can send
+the next/previous page keyset serialized, as shown in the "Usage" section
+
+Serialize:
 
 ```python
-
-#...
-
-page_first = paginator.page()
-
-data = {'objects_left_count': page_first.objects_left,
-        'pages_left_count': page_first.pages_left,
-        #...
-        }
+next_page = serializers.to_page_key(**page.next_page())
+prev_page = serializers.to_page_key(**page.prev_page())
 ```
 
-## Limitations
+Deserialize:
 
-* *get previous page* will get implemented in the future, it's not there at this time.
-* Order is DESC (from newest to oldest). You may submit a pull request for ASC order support.
-* Lazy pagination is not supported, yet.
+```python
+value, pk = serializers.page_key(request.GET.get('p', ''))
+```
+
+## Performance
+
+The model should have an index that covers the paginate query.
+The previous example's model would look like this:
+
+```python
+class Article(models.Model):
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['created_at', 'pk'],
+            models.Index(fields=['-created_at', '-pk'])]
+```
+
+> Note: an index is require for each direction,
+  since the query has a `LIMIT`.
+  See [indexes-ordering](https://www.postgresql.org/docs/9.3/indexes-ordering.html)
+
+Pass a limit to the following methods,
+or use them in places where there won't be
+many records, otherwise they get expensive fast:
+
+* ``next_objects_left``
+* ``prev_objects_left``
+* ``next_pages_left``
+* ``prev_pages_left``
+
+## Fetch next or prev page
+
+Prev page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.PREV_PAGE)
+```
+
+Next page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.NEXT_PAGE)
+```
 
 ## Contributing
 
 Feel free to check out the source code and submit pull requests.
 
-You may also report any bug or propose new features in the [issues tracker](https://github.com/nitely/django-infinite-scroll-pagination/issues)
+You may also report any bug or propose new features in the
+[issues tracker](https://github.com/nitely/django-infinite-scroll-pagination/issues)
 
 ## Copyright / License
 
-Copyright 2014 [Esteban Castro Borsani](https://github.com/nitely).
-
-Licensed under the [MIT License](https://github.com/nitely/django-infinite-scroll-pagination/blob/master/LICENSE).
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and limitations under the License.
+MIT

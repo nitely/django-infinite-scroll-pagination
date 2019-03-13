@@ -16,7 +16,9 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 setup(
     name='django-infinite-scroll-pagination',
     version=VERSION,
-    description='infinite-scroll-pagination is a Django app that implements the *seek method* for scalable pagination..',
+    description=(
+        'infinite-scroll-pagination is a Django lib that implements'
+        'the *seek method* for scalable pagination.'),
     author='Esteban Castro Borsani',
     author_email='ecastroborsani@gmail.com',
     long_description=README,
