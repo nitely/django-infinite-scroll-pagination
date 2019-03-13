@@ -31,6 +31,16 @@ def _fromtimestamp(ts):
     return datetime.utcfromtimestamp(ts)
 
 
+# py2 only
+def _timestamp(dt):
+    if timezone.is_naive(dt):
+        return time.mktime((
+            dt.year, dt.month, dt.day,
+            dt.hour, dt.minute, dt.second,
+            -1, -1, -1)) + dt.microsecond / 1e6
+    return (dt - datetime(1970, 1, 1, tzinfo=timezone.utc)).total_seconds()
+
+
 def page_key(raw_page):
     """
     Parse a raw page value of ``timestamp-pk`` format.
@@ -58,5 +68,5 @@ def to_page_key(value=None, pk=None):
     try:
         timestamp = value.timestamp()
     except AttributeError:
-        timestamp = time.mktime(value.timetuple()) + value.microsecond / 1e6
+        timestamp = _timestamp(value)
     return '{:.6f}-{}'.format(timestamp, pk)
