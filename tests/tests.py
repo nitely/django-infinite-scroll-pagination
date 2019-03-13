@@ -265,6 +265,34 @@ class PageTest(TestCase):
         self.assertEqual(page.prev_page(), {})
 
 
+class SerializerTest(TestCase):
+
+    def test_page_key_to_page_key(self):
+        dt = datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=123123)
+        key = serializers.to_page_key(value=dt, pk=1)
+        self.assertEqual(key, '1331343040.123123-1')
+        page_dt, page_key = serializers.page_key(key)
+        self.assertEqual(page_dt, dt)
+        self.assertEqual(page_key, '1')
+
+    def test_page_key_to_page_key_tight_api(self):
+        dt = datetime.datetime(
+            year=2012, month=3, day=9, hour=22,
+            minute=30, second=40, microsecond=123123)
+        self.assertEqual(
+            serializers.to_page_key(
+                *serializers.page_key(
+                    serializers.to_page_key(value=dt, pk=1))),
+            '1331343040.123123-1')
+        self.assertEqual(
+            serializers.to_page_key(
+                *serializers.page_key(
+                    serializers.to_page_key(value=None, pk=None))),
+            '')
+
+
 class PaginatorViewTest(TestCase):
 
     def setUp(self):
@@ -284,7 +312,7 @@ class PaginatorViewTest(TestCase):
             res['articles'],
             [{'title': a.title, } for a in articles[:20]])
 
-    def test_page(self):
+    def test_last_page(self):
         articles = list(Article.objects.all().order_by("-date", "-pk"))
         art = articles[20]
         page = serializers.to_page_key(value=art.date, pk=art.pk)
@@ -294,4 +322,4 @@ class PaginatorViewTest(TestCase):
         res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
             res['articles'],
-            [{'title': a.title, } for a in articles[21:]])
+            [{'title': a.title} for a in articles[21:]])
