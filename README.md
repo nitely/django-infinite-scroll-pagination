@@ -1,12 +1,25 @@
-# infinite-scroll-pagination [![Build Status](https://travis-ci.org/nitely/django-infinite-scroll-pagination.png)](https://travis-ci.org/nitely/django-infinite-scroll-pagination) [![Coverage Status](https://coveralls.io/repos/nitely/django-infinite-scroll-pagination/badge.png?branch=master)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination?branch=master)
+# infinite-scroll-pagination
+
+[![Build Status](https://img.shields.io/travis/nitely/django-infinite-scroll-pagination
+/master.svg?style=flat-square)](https://travis-ci.org/nitely/django-infinite-scroll-pagination
+)
+[![Coverage Status](https://img.shields.io/coveralls/nitely/django-infinite-scroll-pagination
+/master.svg?style=flat-square)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination
+)
+[![pypi](https://img.shields.io/pypi/v/django-infinite-scroll-pagination
+.svg?style=flat-square)](https://pypi.python.org/pypi/django-infinite-scroll-pagination
+)
+[![licence](https://img.shields.io/pypi/l/django-infinite-scroll-pagination
+.svg?style=flat-square)](https://raw.githubusercontent.com/nitely/django-infinite-scroll-pagination
+/master/LICENSE)
 
 infinite-scroll-pagination is a Django lib that implements
 [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
-(AKA Keyset Paging and Cursor Pagination) for scalable pagination.
+(AKA Keyset Paging or Cursor Pagination) for scalable pagination.
 
 > Note despite its name, this library can be used as a regular paginator,
-  a better name would have been ``seek-paginator``, ``keyset-paginator`` or
-  ``cursor-paginator`` but it's too late for that now, haha :D
+  a better name would have been ``seek-paginator``, ``keyset-paginator``,
+  ``cursor-paginator`` or ``offset-less-paginator`` but it's too late for that now, haha :D
 
 ## How it works
 
@@ -23,7 +36,7 @@ Nor do rows mysteriously vanish between pages. These anomalies are common
 with the *offset/limit* based approach, but the *keyset* based solution does
 a much better job at avoiding them.
 * is fast: all operations can be solved with a fast row positioning followed
-by a range scan in the desired direction
+by a range scan in the desired direction.
 
 For a full explanation go to
 [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
@@ -35,6 +48,12 @@ infinite-scroll-pagination requires the following software to be installed:
 * Python 2.7, 3.4, 3.5 or 3.6
 * Django 1.11 LTS, 2.0 or 2.1
 
+## Install
+
+```
+pip install django-infinite-scroll-pagination
+```
+
 ## Django Rest Framework (DRF)
 
 DRF has the built-in `CursorPagination`
@@ -42,7 +61,7 @@ that is similar to this lib. Use that instead.
 
 ## Usage
 
-This example pages by a `created_at` date field:
+This example paginates by a `created_at` date field:
 
 ```python
 # views.py
@@ -91,7 +110,7 @@ def pagination_ajax(request):
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
-Paging by pk, id or some `unique=True` field:
+Paginating by pk, id or some `unique=True` field:
 
 ```python
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
@@ -104,7 +123,7 @@ there is a serializers that will convert both values to ``timestamp-pk``,
 for example: ``1552349160.099628-5``, this can be later be used
 as a query string ``https://.../articles/?p=1552349160.099628-5``.
 There is no need to do the conversion client side, the server can send
-the next/previous page keyset serialized, as shown in the "Usage" section
+the next/previous page keyset serialized, as shown in the "Usage" section.
 
 Serialize:
 
@@ -135,7 +154,7 @@ class Article(models.Model):
             models.Index(fields=['-created_at', '-pk'])]
 ```
 
-> Note: an index is require for each direction,
+> Note: an index is require for both directions,
   since the query has a `LIMIT`.
   See [indexes-ordering](https://www.postgresql.org/docs/9.3/indexes-ordering.html)
 
@@ -170,7 +189,7 @@ page = paginator.paginate(
 
 Feel free to check out the source code and submit pull requests.
 
-You may also report any bug or propose new features in the
+Please, report any bug or propose new features in the
 [issues tracker](https://github.com/nitely/django-infinite-scroll-pagination/issues)
 
 ## Copyright / License
