@@ -1,17 +1,9 @@
 # infinite-scroll-pagination
 
-[![Build Status](https://img.shields.io/travis/nitely/django-infinite-scroll-pagination
-/master.svg?style=flat-square)](https://travis-ci.org/nitely/django-infinite-scroll-pagination
-)
-[![Coverage Status](https://img.shields.io/coveralls/nitely/django-infinite-scroll-pagination
-/master.svg?style=flat-square)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination
-)
-[![pypi](https://img.shields.io/pypi/v/django-infinite-scroll-pagination
-.svg?style=flat-square)](https://pypi.python.org/pypi/django-infinite-scroll-pagination
-)
-[![licence](https://img.shields.io/pypi/l/django-infinite-scroll-pagination
-.svg?style=flat-square)](https://raw.githubusercontent.com/nitely/django-infinite-scroll-pagination
-/master/LICENSE)
+[![Build Status](https://img.shields.io/travis/nitely/django-infinite-scroll-pagination/master.svg?style=flat-square)](https://travis-ci.org/nitely/django-infinite-scroll-pagination)
+[![Coverage Status](https://img.shields.io/coveralls/nitely/django-infinite-scroll-pagination/master.svg?style=flat-square)](https://coveralls.io/r/nitely/django-infinite-scroll-pagination)
+[![pypi](https://img.shields.io/pypi/v/django-infinite-scroll-pagination.svg?style=flat-square)](https://pypi.python.org/pypi/django-infinite-scroll-pagination)
+[![licence](https://img.shields.io/pypi/l/django-infinite-scroll-pagination.svg?style=flat-square)](https://raw.githubusercontent.com/nitely/django-infinite-scroll-pagination/master/LICENSE)
 
 infinite-scroll-pagination is a Django lib that implements
 [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)
