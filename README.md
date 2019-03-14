@@ -108,6 +108,42 @@ Paginating by pk, id or some `unique=True` field:
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
 
+## DESC/ASC order
+
+DESC order:
+
+```python
+page = paginator.paginate(
+    # ...,
+    lookup_field='-created_at')
+```
+
+ASC order:
+
+```python
+page = paginator.paginate(
+    # ...,
+    lookup_field='created_at')
+```
+
+## Fetch next or prev page
+
+Prev page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.PREV_PAGE)
+```
+
+Next page:
+
+```python
+page = paginator.paginate(
+    # ...,
+    move_to=paginator.NEXT_PAGE)
+```
+
 ## Serializers
 
 Since paginating by a datetime and a pk is so common,
@@ -158,24 +194,6 @@ many records, otherwise they get expensive fast:
 * ``prev_objects_left``
 * ``next_pages_left``
 * ``prev_pages_left``
-
-## Fetch next or prev page
-
-Prev page:
-
-```python
-page = paginator.paginate(
-    # ...,
-    move_to=paginator.PREV_PAGE)
-```
-
-Next page:
-
-```python
-page = paginator.paginate(
-    # ...,
-    move_to=paginator.NEXT_PAGE)
-```
 
 ## Contributing
 
