@@ -108,7 +108,7 @@ Paginating by pk, id or some `unique=True` field:
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
 
-## DESC/ASC order
+## Items order
 
 DESC order:
 
