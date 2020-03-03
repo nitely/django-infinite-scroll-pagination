@@ -1,14 +1,12 @@
 language: python
 sudo: false
 python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
   - "3.6"
+  - "3.7"
+  - "3.8"
 env:
-  - DJANGO=1.11.20
-  - DJANGO=2.0.12
-  - DJANGO=2.1.7
+  - DJANGO=2.2.8
+  - DJANGO=3.0.3
 install:
   - pip install --upgrade pip
   - pip install -q Django==$DJANGO
@@ -17,14 +15,6 @@ script:
   - coverage run --source=. runtests.py
 after_success:
   - coveralls
-matrix:
-  exclude:
-    - python: "2.7"
-      env: DJANGO=2.0.12
-    - python: "2.7"
-      env: DJANGO=2.1.7
-    - python: "3.4"
-      env: DJANGO=2.1.7
 notifications:
   email:
     on_failure: never

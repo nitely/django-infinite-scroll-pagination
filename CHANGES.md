@@ -1,3 +1,9 @@
+1.1.0
+==================
+
+* Drop support for Django 1.11, 2.0 and 2.1
+* Adds support for Django 2.2 and 3.0
+
 1.0.0
 ==================
 
