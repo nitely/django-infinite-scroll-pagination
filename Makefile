@@ -10,7 +10,7 @@ test:
 sdist: test clean
 	python setup.py sdist
 
-release: test clean
-	python setup.py sdist upload
+release: sdist
+	twine upload dist/*
 
 .PHONY: clean docs test sdist release
