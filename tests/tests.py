@@ -153,6 +153,59 @@ class PaginatorTest(TestCase):
         self.assertListEqual(list(page_3), list(articles[20:]))
 
 
+class PaginatorMultiFieldTest(TestCase):
+
+    def setUp(self):
+        date = timezone.now()
+        for i in range(25):
+            seconds = datetime.timedelta(seconds=i)
+            Article.objects.create(
+                title="%s" % i, date=date, date_unique=date + seconds)
+
+    def test_next_desc_non_unique(self):
+        articles = Article.objects.all().order_by('-is_pinned', "-date", "-pk")
+        paginator = SeekPaginator(
+            Article.objects.all(),
+            per_page=10,
+            lookup_field=('-is_pinned', '-date'))
+        page_1 = paginator.page(value=None, pk=None)
+        self.assertListEqual(list(page_1), list(articles[:10]))
+        page_2 = paginator.page(
+            value=(page_1[-1].is_pinned, page_1[-1].date),
+            pk=page_1[-1].pk)
+        self.assertListEqual(list(page_2), list(articles[10:20]))
+        page_3 = paginator.page(
+            value=(page_2[-1].is_pinned, page_2[-1].date),
+            pk=page_2[-1].pk)
+        self.assertListEqual(list(page_3), list(articles[20:]))
+
+    def test_next_desc_non_unique_pinned(self):
+        articles = Article.objects.all().order_by('-is_pinned', "-date", "-pk")
+        for a in articles[:5]:
+            a.is_pinned = True
+            a.save()
+        for a in articles[10:15]:
+            a.is_pinned = True
+            a.save()
+        for a in articles[20:]:
+            a.is_pinned = True
+            a.save()
+        paginator = SeekPaginator(
+            Article.objects.all(),
+            per_page=10,
+            lookup_field=('-is_pinned', '-date'))
+        page_1 = paginator.page(value=None, pk=None)
+        self.assertListEqual(list(page_1), list(articles[:10]))
+        page_2 = paginator.page(
+            value=(page_1[-1].is_pinned, page_1[-1].date),
+            pk=page_1[-1].pk)
+        self.assertListEqual(list(page_2), list(articles[10:20]))
+        page_3 = paginator.page(
+            value=(page_2[-1].is_pinned, page_2[-1].date),
+            pk=page_2[-1].pk)
+        self.assertListEqual(list(page_3), list(articles[20:]))
+
+
 class PageTest(TestCase):
 
     def setUp(self):

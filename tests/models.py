@@ -10,6 +10,7 @@ class Article(models.Model):
     title = models.CharField(max_length=75)
     date = models.DateTimeField()
     date_unique = models.DateTimeField(unique=True)
+    is_pinned = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.title

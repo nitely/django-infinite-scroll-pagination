@@ -22,13 +22,13 @@ based on the top/last keyset
 This approach has two main advantages over the *OFFSET/LIMIT* approach:
 
 * is correct: unlike the *offset/limit* based approach it correctly handles
-new entries and deleted entries. Last row of Page 4 does not show up as first
-row of Page 5 just because row 23 on Page 2 was deleted in the meantime.
-Nor do rows mysteriously vanish between pages. These anomalies are common
-with the *offset/limit* based approach, but the *keyset* based solution does
-a much better job at avoiding them.
+  new entries and deleted entries. Last row of Page 4 does not show up as first
+  row of Page 5 just because row 23 on Page 2 was deleted in the meantime.
+  Nor do rows mysteriously vanish between pages. These anomalies are common
+  with the *offset/limit* based approach, but the *keyset* based solution does
+  a much better job at avoiding them.
 * is fast: all operations can be solved with a fast row positioning followed
-by a range scan in the desired direction.
+  by a range scan in the desired direction.
 
 For a full explanation go to
 [the seek method](http://use-the-index-luke.com/sql/partial-results/fetch-next-page)

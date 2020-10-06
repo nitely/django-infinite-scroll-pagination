@@ -1,13 +1,12 @@
 #-*- coding: utf-8 -*-
 
-
 try:
     from collections.abc import Sequence
 except ImportError:
     from collections import Sequence
 
 from django.core.paginator import EmptyPage
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 
 __all__ = [
     'SeekPaginator',
@@ -33,52 +32,105 @@ class _NoPk:
 # the first page
 _NO_PK = _NoPk()
 
-
-class SeekPaginator(object):
-
+class SeekPaginator:
     def __init__(self, query_set, per_page, lookup_field):
         assert isinstance(query_set, QuerySet), 'QuerySet expected'
         assert isinstance(per_page, int), 'Int expected'
-        assert isinstance(lookup_field, str), 'String expected'
+        #assert isinstance(lookup_field, str), 'String expected'
         self.query_set = query_set
         self.per_page = per_page
-        self.is_desc = lookup_field.startswith('-')
-        self.is_asc = not self.is_desc
-        self.lookup_field = lookup_field.lstrip('-')
+        #self.is_desc = lookup_field.startswith('-')
+        if isinstance(lookup_field, str):
+            lookup_field = (lookup_field,)
+        self.lookup_fields = lookup_field
+
+    @property
+    def lookup_field(self):
+        (fa,) = self.lookup_fields
+        return fa.lstrip('-')
+
+    @property
+    def lookup_fields2(self):
+        return tuple(v.lstrip('-') for v in self.lookup_fields)
 
     def prepare_order(self, has_pk, move_to):
+        if len(self.lookup_fields) == 2:
+            fa, fb = self.lookup_fields
+            pk_sort = 'pk'
+            fas, fbs = fa.lstrip('-'), fb.lstrip('-')
+            if ((fa.startswith('-') and move_to == NEXT_PAGE) or
+                    (not fa.startswith('-') and move_to == PREV_PAGE)):
+                fas = '-%s' % fas
+            if ((fb.startswith('-') and move_to == NEXT_PAGE) or
+                    (not fb.startswith('-') and move_to == PREV_PAGE)):
+                fbs = '-%s' % fbs
+                pk_sort = '-pk'
+            if has_pk:
+                return [fas, fbs, pk_sort]
+            return [fas, fbs]
+        (fa,) = self.lookup_fields
+        is_desc = fa.startswith('-')
+        is_asc = not is_desc
         pk_sort = 'pk'
-        lookup_sort = self.lookup_field
-        if ((self.is_desc and move_to == NEXT_PAGE) or
-                (self.is_asc and move_to == PREV_PAGE)):
+        lookup_sort = fa.lstrip('-')
+        if ((is_desc and move_to == NEXT_PAGE) or
+                (is_asc and move_to == PREV_PAGE)):
             pk_sort = '-%s' % pk_sort
             lookup_sort = '-%s' % lookup_sort
         if has_pk:
             return [lookup_sort, pk_sort]
         return [lookup_sort]
 
-    def prepare_lookup(self, value, pk, move_to):
-        lookup_include = '%s__gt' % self.lookup_field
-        lookup_exclude_pk = 'pk__lte'
-        if ((self.is_desc and move_to == NEXT_PAGE) or
-                (self.is_asc and move_to == PREV_PAGE)):
-            lookup_include = '%s__lt' % self.lookup_field
-            lookup_exclude_pk = 'pk__gte'
-        lookup_exclude = None
-        if pk is not _NO_PK:
-            lookup_include = "%se" % lookup_include
-            lookup_exclude = {self.lookup_field: value, lookup_exclude_pk: pk}
-        lookup_filter = {lookup_include: value}
-        return lookup_filter, lookup_exclude
-
     def apply_filter(self, value, pk, move_to):
+        assert len(value) == len(self.lookup_fields)
         query_set = self.query_set
-        lookup_filter, lookup_exclude = self.prepare_lookup(
-            value=value, pk=pk, move_to=move_to)
-        query_set = query_set.filter(**lookup_filter)
-        if lookup_exclude:
-            query_set = query_set.exclude(**lookup_exclude)
-        return query_set
+        if len(value) == 2:
+            fa, fb = self.lookup_fields
+            lfa = '%s__gt' % fa.lstrip('-')
+            lfb = '%s__gt' % fb.lstrip('-')
+            lfp = 'pk__lte'
+            if ((fa.startswith('-') and move_to == NEXT_PAGE) or
+                    (not fa.startswith('-') and move_to == PREV_PAGE)):
+                lfa = '%s__lt' % fa.lstrip('-')
+            if ((fb.startswith('-') and move_to == NEXT_PAGE) or
+                    (not fb.startswith('-') and move_to == PREV_PAGE)):
+                lfb = '%s__lt' % fb.lstrip('-')
+                lfp = 'pk__gte'
+            assert pk is not _NO_PK
+            lfa += 'e'
+            lfb += 'e'
+            fa, fb = fa.lstrip('-'), fb.lstrip('-')
+            va, vb = value
+            # A * ~(B * ~(C * ~(D * (F * ~(G * H)))))
+            q = (
+                Q(**{lfa: va})
+                & ~(Q(**{fa: va})
+                    & ~(Q(**{lfb: vb})
+                       & ~(Q(**{fb: vb}) & Q(**{lfp: pk})))))
+            return query_set.filter(q)
+        assert len(value) == 1
+        #    A * ~(B * C)
+        # -> A * (~B + ~C)
+        (fa,) = self.lookup_fields
+        is_desc = fa.startswith('-')
+        is_asc = not is_desc
+        fa = fa.lstrip('-')
+        lookup_field = '%s__gt' % fa
+        lookup_pk = 'pk__lte'
+        if ((is_desc and move_to == NEXT_PAGE) or
+                (is_asc and move_to == PREV_PAGE)):
+            lookup_field = '%s__lt' % fa
+            lookup_pk = 'pk__gte'
+        if pk is not _NO_PK:
+            lookup_field += 'e'
+            (va,) = value
+            q = (
+                Q(**{lookup_field: va})
+                & ~Q(Q(**{fa: va}) & Q(**{lookup_pk: pk})))
+        else:
+            (va,) = value
+            q = Q(**{lookup_field: va})
+        return query_set.filter(q)
 
     def seek(self, value, pk, move_to):
         """
@@ -92,9 +144,36 @@ class SeekPaginator(object):
             AND NOT (date = ? AND id >= ?)
             ORDER BY date DESC, id DESC
 
+        Multi field lookup. Note how it produces nesting,
+        and how I removed it using boolean logic simplification::
+
+            X <= ?
+            AND NOT (X = ? AND (date <= ? AND NOT (date = ? AND id >= ?)))
+            <--->
+            X <= ?
+            AND (NOT X = ? OR NOT date <= ? OR (date = ? AND id >= ?))
+            <--->
+            X <= ?
+            AND (NOT X = ? OR NOT date <= ? OR date = ?)
+            AND (NOT X = ? OR NOT date <= ? OR id >= ?)
+
+            A * ~(B * (C * ~(D * F)))
+            -> (D + ~B + ~C) * (F + ~B + ~C) * A
+            A * ~(B * (C * ~(D * (F * ~(G * H)))))
+            -> (D + ~B + ~C) * (F + ~B + ~C) * (~B + ~C + ~G + ~H) * A
+            A * ~(B * (C * ~(D * (F * ~(G * (X * ~(Y * Z)))))))
+            -> (D + ~B + ~C) * (F + ~B + ~C) * (Y + ~B + ~C + ~G + ~X) * (Z + ~B + ~C + ~G + ~X) * A
+
+        Addendum::
+
+            X <= ?
+            AND NOT (X = ? AND NOT (date <= ? AND NOT (date = ? AND id >= ?)))
+
         """
         query_set = self.query_set
         if value is not None:
+            if not isinstance(value, (tuple, list)):
+                value = (value,)
             query_set = self.apply_filter(
                 value=value, pk=pk, move_to=move_to)
         query_set = query_set.order_by(
@@ -125,7 +204,6 @@ class SeekPaginator(object):
 
 
 class SeekPage(Sequence):
-
     def __init__(self, query_set, key, move_to, paginator):
         self._query_set = query_set
         self._key = key
@@ -163,8 +241,11 @@ class SeekPage(Sequence):
         pk = _NO_PK
         if self._key['pk'] is not _NO_PK:
             pk = last.pk
+        values = tuple(
+            getattr(last, f)
+            for f in self.paginator.lookup_fields2)
         return self.paginator.seek(
-            value=getattr(last, self.paginator.lookup_field),
+            value=values,
             pk=pk,
             move_to=direction)
 
@@ -214,10 +295,10 @@ class SeekPage(Sequence):
     def _some_page(self, index):
         if not self.object_list:
             return {}
-        key = {
-            'value': getattr(
-                self.object_list[index],
-                self.paginator.lookup_field)}
+        values = tuple(
+            getattr(self.object_list[index], f)
+            for f in self.paginator.lookup_fields2)
+        key = {'value': values}
         if self._key['pk'] is not _NO_PK:
             key['pk'] = self.object_list[index].pk
         return key

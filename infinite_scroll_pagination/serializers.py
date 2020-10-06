@@ -63,6 +63,8 @@ def to_page_key(value=None, pk=None):
     """Serialize a value and pk to `timestamp-pk`` format"""
     if value is None:
         return ''
+    if isinstance(value, (tuple, list)):
+        (value,) = value
     value = _make_aware_maybe(value)
     try:
         timestamp = value.timestamp()
