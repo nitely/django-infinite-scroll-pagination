@@ -96,17 +96,22 @@ class SeekPaginator:
                     (not fb.startswith('-') and move_to == PREV_PAGE)):
                 lfb = '%s__lt' % fb.lstrip('-')
                 lfp = 'pk__gte'
-            assert pk is not _NO_PK
-            lfa += 'e'
-            lfb += 'e'
-            fa, fb = fa.lstrip('-'), fb.lstrip('-')
-            va, vb = value
-            # A * ~(B * ~(C * ~(D * (F * ~(G * H)))))
-            q = (
-                Q(**{lfa: va})
-                & ~(Q(**{fa: va})
-                    & ~(Q(**{lfb: vb})
-                       & ~(Q(**{fb: vb}) & Q(**{lfp: pk})))))
+            if pk is not _NO_PK:
+                lfa += 'e'
+                lfb += 'e'
+                fa, fb = fa.lstrip('-'), fb.lstrip('-')
+                va, vb = value
+                # A * ~(B * ~(C * ~(D * (F * ~(G * H)))))
+                q = (
+                    Q(**{lfa: va})
+                    & ~(Q(**{fa: va})
+                        & ~(Q(**{lfb: vb})
+                           & ~(Q(**{fb: vb}) & Q(**{lfp: pk})))))
+            else:
+                lfa += 'e'
+                fa, fb = fa.lstrip('-'), fb.lstrip('-')
+                va, vb = value
+                q = Q(**{lfa: va}) & ~(Q(**{fa: va}) & ~Q(**{lfb: vb}))
             return query_set.filter(q)
         assert len(value) == 1
         #    A * ~(B * C)
