@@ -2,6 +2,7 @@
 ==================
 
 * Support paginating by multiple fields
+* Adds Django 3.1 support
 
 1.1.0
 ==================
