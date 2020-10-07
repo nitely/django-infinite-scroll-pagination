@@ -178,8 +178,8 @@ class Article(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['created_at', 'pk'],
-            models.Index(fields=['-created_at', '-pk'])]
+            models.Index(fields=['created_at', 'id']),
+            models.Index(fields=['-created_at', '-id'])]
 ```
 
 > Note: an index is require for both directions,
