@@ -97,13 +97,13 @@ def pagination_ajax(request):
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
-# `pk`, `ìd`, or some `unique=True` field:
+## `pk`, `ìd`, or some `unique=True` field:
 
 ```python
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
 
-# Multiple fields:
+## Multiple fields:
 
 ```python
 page = paginator.paginate(
