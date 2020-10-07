@@ -1,5 +1,5 @@
 [report]
 omit =
-    /bench
+    runbench.py
     runtests.py
     setup.py
