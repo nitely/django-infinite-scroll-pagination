@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  database:
+    image: postgres:10.5
+    restart: always
+  paginator:
+    build: .
+    hostname: paginator
+    volumes:
+      - ..:/usr/src/app
+    links:
+      - database

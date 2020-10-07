@@ -1,3 +1,8 @@
+1.2.0
+==================
+
+* Support paginating by multiple fields
+
 1.1.0
 ==================
 
