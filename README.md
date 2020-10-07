@@ -46,11 +46,6 @@ infinite-scroll-pagination requires the following software to be installed:
 pip install django-infinite-scroll-pagination
 ```
 
-## Django Rest Framework (DRF)
-
-DRF has the built-in `CursorPagination`
-that is similar to this lib. Use that instead.
-
 ## Usage
 
 This example paginates by a `created_at` date field:
@@ -102,11 +97,23 @@ def pagination_ajax(request):
     return HttpResponse(json.dumps(data), content_type="application/json")
 ```
 
-Paginating by pk, id or some `unique=True` field:
+Paginating by `pk`, `id`, or some `unique=True` field:
 
 ```python
 page = paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
 ```
+
+Paginating by multiple fields:
+
+```python
+page = paginator.paginate(
+    queryset,
+    lookup_field=('-is_pinned', '-created_at', '-pk'),
+    value=(is_pinned, created_at, pk),
+    per_page=20)
+```
+
+> Make sure the last field is `unique=True`, or `pk`
 
 ## Items order
 
@@ -185,6 +192,15 @@ class Article(models.Model):
 > Note: an index is require for both directions,
   since the query has a `LIMIT`.
   See [indexes-ordering](https://www.postgresql.org/docs/9.3/indexes-ordering.html)
+
+However, this library does not implements the fast "row values"
+variant of [the seek method](https://use-the-index-luke.com/sql/partial-results/fetch-next-page).
+What this means is the index is only
+used on the first field. If the first field is a boolean,
+then it won't be used. So, it's pointless to index anything other than the first field.
+See [PR #8](https://github.com/nitely/django-infinite-scroll-pagination/pull/8)
+if you are interested in benchmarks numbers, and please let me know
+if there is a way to implement the "row values" variant without using raw SQL.
 
 Pass a limit to the following methods,
 or use them in places where there won't be
