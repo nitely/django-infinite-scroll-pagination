@@ -16,8 +16,7 @@ __all__ = [
     'PREV_PAGE']
 
 
-NEXT_PAGE = 1
-PREV_PAGE = 2
+NEXT_PAGE, PREV_PAGE, DESC, ASC = range(1, 5)
 
 
 class _NoPk:
@@ -32,6 +31,12 @@ class _NoPk:
 # the first page
 _NO_PK = _NoPk()
 
+# XXX simplify things by removing the pk parameter,
+#     and requiring it as last field/value; we should
+#     also validate there is a single unique=True field,
+#     and it's the last one; this is a breaking chance, though
+
+
 class SeekPaginator:
     def __init__(self, query_set, per_page, lookup_field):
         assert isinstance(query_set, QuerySet), 'QuerySet expected'
@@ -39,103 +44,60 @@ class SeekPaginator:
         #assert isinstance(lookup_field, str), 'String expected'
         self.query_set = query_set
         self.per_page = per_page
-        #self.is_desc = lookup_field.startswith('-')
         if isinstance(lookup_field, str):
             lookup_field = (lookup_field,)
         self.lookup_fields = lookup_field
 
     @property
-    def lookup_field(self):
-        (fa,) = self.lookup_fields
-        return fa.lstrip('-')
+    def fields(self):
+        return tuple(f.lstrip('-') for f in self.lookup_fields)
 
     @property
-    def lookup_fields2(self):
-        return tuple(v.lstrip('-') for v in self.lookup_fields)
+    def fields_direction(self):
+        d = {True: DESC, False: ASC}
+        return tuple(
+            (f.lstrip('-'), d[f.startswith('-')])
+            for f in self.lookup_fields)
 
     def prepare_order(self, has_pk, move_to):
-        if len(self.lookup_fields) == 2:
-            fa, fb = self.lookup_fields
-            pk_sort = 'pk'
-            fas, fbs = fa.lstrip('-'), fb.lstrip('-')
-            if ((fa.startswith('-') and move_to == NEXT_PAGE) or
-                    (not fa.startswith('-') and move_to == PREV_PAGE)):
-                fas = '-%s' % fas
-            if ((fb.startswith('-') and move_to == NEXT_PAGE) or
-                    (not fb.startswith('-') and move_to == PREV_PAGE)):
-                fbs = '-%s' % fbs
-                pk_sort = '-pk'
-            if has_pk:
-                return [fas, fbs, pk_sort]
-            return [fas, fbs]
-        (fa,) = self.lookup_fields
-        is_desc = fa.startswith('-')
-        is_asc = not is_desc
-        pk_sort = 'pk'
-        lookup_sort = fa.lstrip('-')
-        if ((is_desc and move_to == NEXT_PAGE) or
-                (is_asc and move_to == PREV_PAGE)):
-            pk_sort = '-%s' % pk_sort
-            lookup_sort = '-%s' % lookup_sort
+        result = []
+        fields_direction = list(self.fields_direction)
         if has_pk:
-            return [lookup_sort, pk_sort]
-        return [lookup_sort]
+            fields_direction.append(
+                ('pk', fields_direction[-1][1]))
+        for f, d in fields_direction:
+            if ((d == DESC and move_to == NEXT_PAGE) or
+                    (d == ASC and move_to == PREV_PAGE)):
+                f = '-%s' % f
+            result.append(f)
+        return result
+
+    # q = X<=? & ~(X=? & ~(Y<?))
+    def _apply_filter(self, i, fields, values, move_to):
+        assert i < len(fields)
+        f, d = fields[i]
+        v = values[i]
+        lf = '%s__gt' % f
+        if ((d == DESC and move_to == NEXT_PAGE) or
+                (d == ASC and move_to == PREV_PAGE)):
+            lf = '%s__lt' % f
+        if len(fields) == 1:
+            return Q(**{lf: v})
+        if i+1 == len(fields):
+            return Q(**{lf: v})
+        q = self._apply_filter(i+1, fields, values, move_to)
+        return Q(**{lf + 'e': v}) & ~(Q(**{f: v}) & ~q)
 
     def apply_filter(self, value, pk, move_to):
         assert len(value) == len(self.lookup_fields)
-        query_set = self.query_set
-        if len(value) == 2:
-            fa, fb = self.lookup_fields
-            lfa = '%s__gt' % fa.lstrip('-')
-            lfb = '%s__gt' % fb.lstrip('-')
-            lfp = 'pk__lte'
-            if ((fa.startswith('-') and move_to == NEXT_PAGE) or
-                    (not fa.startswith('-') and move_to == PREV_PAGE)):
-                lfa = '%s__lt' % fa.lstrip('-')
-            if ((fb.startswith('-') and move_to == NEXT_PAGE) or
-                    (not fb.startswith('-') and move_to == PREV_PAGE)):
-                lfb = '%s__lt' % fb.lstrip('-')
-                lfp = 'pk__gte'
-            if pk is not _NO_PK:
-                lfa += 'e'
-                lfb += 'e'
-                fa, fb = fa.lstrip('-'), fb.lstrip('-')
-                va, vb = value
-                # A * ~(B * ~(C * ~(D * (F * ~(G * H)))))
-                q = (
-                    Q(**{lfa: va})
-                    & ~(Q(**{fa: va})
-                        & ~(Q(**{lfb: vb})
-                           & ~(Q(**{fb: vb}) & Q(**{lfp: pk})))))
-            else:
-                lfa += 'e'
-                fa, fb = fa.lstrip('-'), fb.lstrip('-')
-                va, vb = value
-                q = Q(**{lfa: va}) & ~(Q(**{fa: va}) & ~Q(**{lfb: vb}))
-            return query_set.filter(q)
-        assert len(value) == 1
-        #    A * ~(B * C)
-        # -> A * (~B + ~C)
-        (fa,) = self.lookup_fields
-        is_desc = fa.startswith('-')
-        is_asc = not is_desc
-        fa = fa.lstrip('-')
-        lookup_field = '%s__gt' % fa
-        lookup_pk = 'pk__lte'
-        if ((is_desc and move_to == NEXT_PAGE) or
-                (is_asc and move_to == PREV_PAGE)):
-            lookup_field = '%s__lt' % fa
-            lookup_pk = 'pk__gte'
+        fields = list(self.fields_direction)
+        values = list(value)
         if pk is not _NO_PK:
-            lookup_field += 'e'
-            (va,) = value
-            q = (
-                Q(**{lookup_field: va})
-                & ~Q(Q(**{fa: va}) & Q(**{lookup_pk: pk})))
-        else:
-            (va,) = value
-            q = Q(**{lookup_field: va})
-        return query_set.filter(q)
+            values.append(pk)
+            fields.append(
+                ('pk', fields[-1][1]))
+        q = self._apply_filter(0, fields, values, move_to)
+        return self.query_set.filter(q)
 
     def seek(self, value, pk, move_to):
         """
@@ -248,7 +210,7 @@ class SeekPage(Sequence):
             pk = last.pk
         values = tuple(
             getattr(last, f)
-            for f in self.paginator.lookup_fields2)
+            for f in self.paginator.fields)
         return self.paginator.seek(
             value=values,
             pk=pk,
@@ -302,7 +264,7 @@ class SeekPage(Sequence):
             return {}
         values = tuple(
             getattr(self.object_list[index], f)
-            for f in self.paginator.lookup_fields2)
+            for f in self.paginator.fields)
         key = {'value': values}
         if self._key['pk'] is not _NO_PK:
             key['pk'] = self.object_list[index].pk
