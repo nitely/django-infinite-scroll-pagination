@@ -60,12 +60,12 @@ class SeekPaginator:
             for f in self.lookup_fields)
 
     def prepare_order(self, has_pk, move_to):
-        result = []
-        fields_direction = list(self.fields_direction)
+        fields = list(self.fields_direction)
         if has_pk:
-            fields_direction.append(
-                ('pk', fields_direction[-1][1]))
-        for f, d in fields_direction:
+            fields.append(
+                ('pk', fields[-1][1]))
+        result = []
+        for f, d in fields:
             if ((d == DESC and move_to == NEXT_PAGE) or
                     (d == ASC and move_to == PREV_PAGE)):
                 f = '-%s' % f

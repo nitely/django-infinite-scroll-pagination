@@ -11,6 +11,7 @@ class Article(models.Model):
     date = models.DateTimeField()
     date_unique = models.DateTimeField(unique=True)
     is_pinned = models.BooleanField(default=False)
+    is_sticky = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.title
