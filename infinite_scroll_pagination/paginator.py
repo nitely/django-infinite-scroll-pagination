@@ -73,7 +73,7 @@ class SeekPaginator:
         return result
 
     # q = X<=? & ~(X=? & ~(Y<?))
-    def _apply_filter(self, i, fields, values, move_to):
+    def _apply_filter2(self, i, fields, values, move_to):
         assert i < len(fields)
         f, d = fields[i]
         v = values[i]
@@ -88,6 +88,25 @@ class SeekPaginator:
         q = self._apply_filter(i+1, fields, values, move_to)
         return Q(**{lf + 'e': v}) & ~(Q(**{f: v}) & ~q)
 
+    def _apply_filter(self, q, fields, values, move_to):
+        sign = '>'
+        _, d = fields[0]
+        if ((d == DESC and move_to == NEXT_PAGE) or
+                (d == ASC and move_to == PREV_PAGE)):
+            sign = '<'
+        table = q.model._meta.db_table
+        where = '({lhs}) {sign} ({rhs})'.format(
+            lhs=', '.join(
+                '"{}"."id"'.format(table)
+                if f == 'pk'
+                else '"{}"."{}"'.format(table, f)
+                for f, _ in fields),
+            sign=sign,
+            rhs=', '.join(['%s']*len(values)))
+        return q.extra(
+            where=[where],
+            params=values)
+
     def apply_filter(self, value, pk, move_to):
         assert len(value) == len(self.lookup_fields)
         fields = list(self.fields_direction)
@@ -96,8 +115,10 @@ class SeekPaginator:
             values.append(pk)
             fields.append(
                 ('pk', fields[-1][1]))
-        q = self._apply_filter(0, fields, values, move_to)
-        return self.query_set.filter(q)
+        #q = self._apply_filter(0, fields, values, move_to)
+        #return self.query_set.filter(q)
+        return self._apply_filter(
+            self.query_set, fields, values, move_to)
 
     def seek(self, value, pk, move_to):
         """
@@ -110,31 +131,6 @@ class SeekPaginator:
             WHERE date <= ?
             AND NOT (date = ? AND id >= ?)
             ORDER BY date DESC, id DESC
-
-        Multi field lookup. Note how it produces nesting,
-        and how I removed it using boolean logic simplification::
-
-            X <= ?
-            AND NOT (X = ? AND (date <= ? AND NOT (date = ? AND id >= ?)))
-            <--->
-            X <= ?
-            AND (NOT X = ? OR NOT date <= ? OR (date = ? AND id >= ?))
-            <--->
-            X <= ?
-            AND (NOT X = ? OR NOT date <= ? OR date = ?)
-            AND (NOT X = ? OR NOT date <= ? OR id >= ?)
-
-            A * ~(B * (C * ~(D * F)))
-            -> (D + ~B + ~C) * (F + ~B + ~C) * A
-            A * ~(B * (C * ~(D * (F * ~(G * H)))))
-            -> (D + ~B + ~C) * (F + ~B + ~C) * (~B + ~C + ~G + ~H) * A
-            A * ~(B * (C * ~(D * (F * ~(G * (X * ~(Y * Z)))))))
-            -> (D + ~B + ~C) * (F + ~B + ~C) * (Y + ~B + ~C + ~G + ~X) * (Z + ~B + ~C + ~G + ~X) * A
-
-        Addendum::
-
-            X <= ?
-            AND NOT (X = ? AND NOT (date <= ? AND NOT (date = ? AND id >= ?)))
 
         """
         query_set = self.query_set
