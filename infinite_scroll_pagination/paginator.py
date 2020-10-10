@@ -89,6 +89,10 @@ class SeekPaginator:
         return Q(**{lf + 'e': v}) & ~(Q(**{f: v}) & ~q)
 
     def _apply_filter(self, q, fields, values, move_to):
+        assert len(set(d for _, d in fields)) == 1, (
+            "Mixing sort fields direction is not allowed")
+        assert all('__' not in f for f, _ in fields), (
+            "Field relationships are not allowed")
         sign = '>'
         _, d = fields[0]
         if ((d == DESC and move_to == NEXT_PAGE) or
