@@ -378,3 +378,60 @@ class PaginatorViewTest(TestCase):
         self.assertEqual(
             res['articles'],
             [{'title': a.title} for a in articles[21:]])
+
+
+class DocsTest(TestCase):
+
+    def setUp(self):
+        date = timezone.now()
+
+        for i in range(25):
+            seconds = datetime.timedelta(seconds=i)
+            Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
+
+    def test_paginate(self):
+        queryset = Article.objects.all()
+        pk = None
+        page = inf_paginator.paginate(queryset, lookup_field='pk', value=pk, per_page=20)
+        articles = Article.objects.all().order_by("date_unique")
+        self.assertListEqual(list(page), list(articles[:20]))
+        page_2 = inf_paginator.paginate(queryset, lookup_field='pk', value=page[-1].pk, per_page=20)
+        self.assertListEqual(list(page_2), list(articles[20:40]))
+
+    def test_paginate_multiple_fields(self):
+        articles = Article.objects.all().order_by('-is_pinned', '-date_unique', '-pk')
+        is_pinned = articles[10].is_pinned
+        date_unique = articles[10].date_unique
+        pk = articles[10].pk
+        queryset = Article.objects.all()
+        page = inf_paginator.paginate(
+            queryset,
+            lookup_field=('-is_pinned', '-date_unique', '-pk'),
+            value=(is_pinned, date_unique, pk),
+            per_page=20)
+        self.assertListEqual(list(page), list(articles[11:30]))
+
+
+class IssuesTest(TestCase):
+
+    def setUp(self):
+        date = timezone.now()
+
+        for i in range(25):
+            seconds = datetime.timedelta(seconds=i)
+            Article.objects.create(title="%s" % i, date=date, date_unique=date + seconds)
+
+    def test_issue_12(self):
+        # https://github.com/nitely/django-infinite-scroll-pagination/issues/12
+        queryset = Article.objects.all()
+        pk = queryset[0].pk
+        with self.assertRaises(AssertionError):
+            inf_paginator.paginate(
+                queryset, lookup_field='pk', value=pk, pk=None, per_page=20)
+        with self.assertRaises(AssertionError):
+            inf_paginator.paginate(
+                queryset, lookup_field=('-date_unique', '-pk'), value=(pk, None), per_page=20)
+        self.assertTrue(list(inf_paginator.paginate(
+            queryset, lookup_field='pk', value=None, pk=None, per_page=20)))
+        self.assertTrue(list(inf_paginator.paginate(
+            queryset, lookup_field='pk', value=pk, per_page=20)))

@@ -141,6 +141,8 @@ class SeekPaginator:
         if value is not None:
             if not isinstance(value, (tuple, list)):
                 value = (value,)
+            assert all(v is not None for v in value), 'Value cannot be None'
+            assert pk is not None, 'pk cannot be None, unless both value and pk are None'
             query_set = self.apply_filter(
                 value=value, pk=pk, move_to=move_to)
         query_set = query_set.order_by(
@@ -279,7 +281,7 @@ class SeekPage(Sequence):
         return self._some_page(0)
 
 
-def paginate(query_set, per_page, lookup_field, value, pk=None, move_to=NEXT_PAGE):
+def paginate(query_set, per_page, lookup_field, value, pk=_NO_PK, move_to=NEXT_PAGE):
     """Return a ``SeekPage`` containing the paginated result"""
     return (
         SeekPaginator(
