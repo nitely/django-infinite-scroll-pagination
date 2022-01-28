@@ -435,3 +435,5 @@ class IssuesTest(TestCase):
             queryset, lookup_field='pk', value=None, pk=None, per_page=20)))
         self.assertTrue(list(inf_paginator.paginate(
             queryset, lookup_field='pk', value=pk, per_page=20)))
+        self.assertTrue(list(inf_paginator.paginate(
+            queryset, lookup_field=('-date_unique', '-pk'), value=(None, None), per_page=20)))

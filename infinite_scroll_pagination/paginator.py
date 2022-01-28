@@ -138,10 +138,13 @@ class SeekPaginator:
 
         """
         query_set = self.query_set
-        if value is not None:
-            if not isinstance(value, (tuple, list)):
-                value = (value,)
-            assert all(v is not None for v in value), 'Value cannot be None'
+        if not isinstance(value, (tuple, list)):
+            value = (value,)
+        all_not_none = all(v is not None for v in value)
+        all_none = all(v is None for v in value)
+        assert all_not_none or all_none, (
+            'value cannot contain a None value, unless all values are None')
+        if all_not_none:
             assert pk is not None, 'pk cannot be None, unless both value and pk are None'
             query_set = self.apply_filter(
                 value=value, pk=pk, move_to=move_to)
