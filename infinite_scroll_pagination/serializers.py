@@ -2,10 +2,11 @@
 
 import re
 import time
+from datetime import timezone
 from datetime import datetime
 
 from django.core.paginator import InvalidPage
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.conf import settings
 
 __all__ = [
@@ -19,9 +20,9 @@ PAGE_RE = re.compile(r'^(?P<value>[0-9]+\.[0-9]{6})-(?P<pk>[0-9]+)$')
 def _make_aware_maybe(dt):
     if not getattr(settings, 'USE_TZ', False):
         return dt
-    if timezone.is_aware(dt):
+    if django_timezone.is_aware(dt):
         return dt.astimezone(timezone.utc)
-    return timezone.make_aware(dt, timezone=timezone.utc)
+    return django_timezone.make_aware(dt, timezone=timezone.utc)
 
 
 def _fromtimestamp(ts):
@@ -32,7 +33,7 @@ def _fromtimestamp(ts):
 
 # py2 only
 def _timestamp(dt):
-    if timezone.is_naive(dt):
+    if django_timezone.is_naive(dt):
         return time.mktime((
             dt.year, dt.month, dt.day,
             dt.hour, dt.minute, dt.second,
