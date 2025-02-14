@@ -2,11 +2,11 @@
 
 from __future__ import unicode_literals
 
-from django.conf.urls import url
+from django.urls import path
 
 from . import views
 
 
 urlpatterns = [
-    url(r'^page/$', views.pagination_ajax, name='pagination-ajax'),
+    path('page/', views.pagination_ajax, name='pagination-ajax'),
 ]

@@ -359,7 +359,7 @@ class PaginatorViewTest(TestCase):
     def test_first_page(self):
         response = self.client.get(
             reverse('pagination-ajax'),
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            headers={"x-requested-with": 'XMLHttpRequest'})
         res = json.loads(response.content.decode('utf-8'))
         articles = Article.objects.all().order_by("-date", "-pk")
         self.assertEqual(
@@ -373,7 +373,7 @@ class PaginatorViewTest(TestCase):
         page = serializers.to_page_key(value=art.date, pk=art.pk)
         response = self.client.get(
             reverse('pagination-ajax') + '?p={}'.format(page),
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            headers={"x-requested-with": 'XMLHttpRequest'})
         res = json.loads(response.content.decode('utf-8'))
         self.assertEqual(
             res['articles'],

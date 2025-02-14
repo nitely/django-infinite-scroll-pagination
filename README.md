@@ -37,8 +37,8 @@ For a full explanation go to
 
 infinite-scroll-pagination requires the following software to be installed:
 
-* Python 3.5, 3.6, 3.7, or 3.8
-* Django 2.2 LTS, or 3.0
+* Python +3.9
+* Django +4.2 LTS
 
 ## Install
 
