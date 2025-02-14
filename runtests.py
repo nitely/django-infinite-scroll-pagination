@@ -21,6 +21,7 @@ if not settings.configured:
         ],
         ROOT_URLCONF="tests.urls",
         DEBUG=False,
+        SECRET_KEY="qwerty",
     )
 
 
