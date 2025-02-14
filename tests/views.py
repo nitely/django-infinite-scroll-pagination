@@ -11,8 +11,12 @@ from infinite_scroll_pagination import serializers
 from .models import Article
 
 
+def is_ajax(request):
+    return request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+
 def pagination_ajax(request):
-    if not request.is_ajax():
+    if not is_ajax(request):
         return Http404()
 
     try:
